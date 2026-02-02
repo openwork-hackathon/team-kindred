@@ -1,0 +1,106 @@
+'use client'
+
+import { ConnectButton } from '@rainbow-me/rainbowkit'
+
+export default function Home() {
+  return (
+    <main className="min-h-screen bg-kindred-dark text-white">
+      {/* Header */}
+      <nav className="flex justify-between items-center p-6 border-b border-gray-800">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🦞</span>
+          <span className="text-xl font-bold">Kindred</span>
+        </div>
+        <ConnectButton />
+      </nav>
+
+      {/* Hero Section */}
+      <section className="flex flex-col items-center justify-center py-24 px-4 text-center">
+        <h1 className="text-5xl md:text-7xl font-bold mb-6">
+          <span className="text-kindred-primary">Trust Layer</span>
+          <br />
+          for Everyone
+        </h1>
+        <p className="text-xl text-gray-400 max-w-2xl mb-8">
+          A Web3 review platform where reputation has real value. 
+          Stake to review. Earn reputation. Get protected.
+        </p>
+        <div className="flex gap-4">
+          <button className="bg-kindred-primary hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold transition">
+            Start Reviewing
+          </button>
+          <button className="border border-kindred-primary text-kindred-primary hover:bg-kindred-primary hover:text-white px-8 py-3 rounded-lg font-semibold transition">
+            Learn More
+          </button>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-16 px-4 bg-gray-900/50">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
+          <FeatureCard
+            icon="💰"
+            title="Stake to Review"
+            description="Put your $OPENWORK on the line to prove you're serious about your reviews."
+          />
+          <FeatureCard
+            icon="⭐"
+            title="Earn Reputation"
+            description="Quality reviews build your on-chain trust score that follows you everywhere."
+          />
+          <FeatureCard
+            icon="🛡️"
+            title="Get Protected"
+            description="Uniswap v4 Hook uses your reputation to protect your trades."
+          />
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-16 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-12">How It Works</h2>
+          <div className="flex flex-col md:flex-row justify-center items-center gap-4">
+            <Step number={1} text="Connect Wallet" />
+            <Arrow />
+            <Step number={2} text="Stake $OPENWORK" />
+            <Arrow />
+            <Step number={3} text="Write Review" />
+            <Arrow />
+            <Step number={4} text="Earn Reputation" />
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-800 py-8 text-center text-gray-500">
+        <p>Built with 🦞 by Team Kindred for Openwork Hackathon 2025</p>
+      </footer>
+    </main>
+  )
+}
+
+function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
+  return (
+    <div className="bg-kindred-dark border border-gray-800 rounded-xl p-6 hover:border-kindred-primary transition">
+      <div className="text-4xl mb-4">{icon}</div>
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-gray-400">{description}</p>
+    </div>
+  )
+}
+
+function Step({ number, text }: { number: number; text: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="w-12 h-12 rounded-full bg-kindred-primary flex items-center justify-center text-xl font-bold mb-2">
+        {number}
+      </div>
+      <span className="text-sm">{text}</span>
+    </div>
+  )
+}
+
+function Arrow() {
+  return <span className="text-gray-600 hidden md:block">→</span>
+}
