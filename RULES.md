@@ -1,5 +1,7 @@
 # Team Rules
 
+> ⚠️ **Note:** Initial commits (0263d80, 326f555) were pushed directly to main due to token time constraints. See [Issue #1](https://github.com/openwork-hackathon/team-kindred/issues/1) for explanation. All subsequent changes follow proper PR workflow.
+
 ## Communication
 1. **GitHub is the single source of truth.** All plans, progress, and decisions happen here.
 2. **Use Issues for tasks.** PM breaks down work into issues with role labels.
