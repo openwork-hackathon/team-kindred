@@ -13,6 +13,9 @@ export default function Home() {
           <span className="text-xl font-bold">Kindred</span>
         </div>
         <div className="flex items-center gap-4">
+          <Link href="/leaderboard" className="text-gray-400 hover:text-white transition">
+            Rankings
+          </Link>
           <Link href="/reviews" className="text-gray-400 hover:text-white transition">
             Reviews
           </Link>
@@ -20,7 +23,7 @@ export default function Home() {
             href="/review" 
             className="bg-kindred-primary/20 text-kindred-primary hover:bg-kindred-primary hover:text-white px-4 py-2 rounded-lg transition"
           >
-            Write Review
+            Predict & Review
           </Link>
           <ConnectButton />
         </div>
@@ -28,64 +31,83 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="flex flex-col items-center justify-center py-24 px-4 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-full text-purple-300 text-sm mb-6">
+          <span>🔮</span>
+          <span>Opinion Markets for Web3</span>
+        </div>
         <h1 className="text-5xl md:text-7xl font-bold mb-6">
-          <span className="text-kindred-primary">Trust Layer</span>
+          <span className="text-kindred-primary">Predict.</span>
           <br />
-          for Everyone
+          <span className="text-white">Stake.</span>
+          <br />
+          <span className="text-purple-400">Earn.</span>
         </h1>
         <p className="text-xl text-gray-400 max-w-2xl mb-8">
-          A Web3 review platform where reputation has real value. 
-          Stake to review. Earn reputation. Get protected.
+          Stake your predictions on Web3 project rankings. 
+          DeFi, Perp DEX, Memecoins, AI Agents — every week, the community decides.
         </p>
         <div className="flex gap-4">
           <Link 
-            href="/review"
+            href="/leaderboard"
             className="bg-kindred-primary hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold transition"
           >
-            Start Reviewing
+            View Rankings
           </Link>
           <Link 
-            href="/reviews"
-            className="border border-kindred-primary text-kindred-primary hover:bg-kindred-primary hover:text-white px-8 py-3 rounded-lg font-semibold transition"
+            href="/review"
+            className="border border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white px-8 py-3 rounded-lg font-semibold transition"
           >
-            Browse Reviews
+            Make a Prediction
           </Link>
         </div>
       </section>
 
-      {/* Features */}
+      {/* Markets */}
       <section className="py-16 px-4 bg-gray-900/50">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold mb-8 text-center">Opinion Markets</h2>
+          <div className="grid md:grid-cols-4 gap-4">
+            <MarketCard category="k/defi" icon="🏦" label="DeFi" count={156} />
+            <MarketCard category="k/perp-dex" icon="📈" label="Perp DEX" count={89} />
+            <MarketCard category="k/memecoin" icon="🐸" label="Memecoins" count={234} />
+            <MarketCard category="k/ai" icon="🤖" label="AI Agents" count={67} />
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
           <FeatureCard
-            icon="💰"
-            title="Stake to Review"
-            description="Put your $OPENWORK on the line to prove you're serious about your reviews."
+            icon="🔮"
+            title="Predict Rankings"
+            description="Stake on where you think projects will rank each week. Be right, get rewarded."
           />
           <FeatureCard
-            icon="⭐"
-            title="Earn Reputation"
-            description="Quality reviews build your on-chain trust score that follows you everywhere."
+            icon="📊"
+            title="Stake-Weighted Votes"
+            description="Your prediction weight scales with your stake. Put your money where your mouth is."
           />
           <FeatureCard
-            icon="🛡️"
-            title="Get Protected"
-            description="Uniswap v4 Hook uses your reputation to protect your trades."
+            icon="🏆"
+            title="Weekly Settlements"
+            description="Every week, rankings resolve and winners collect from the prediction pool."
           />
         </div>
       </section>
 
       {/* How It Works */}
-      <section className="py-16 px-4">
+      <section className="py-16 px-4 bg-gray-900/50">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-12">How It Works</h2>
           <div className="flex flex-col md:flex-row justify-center items-center gap-4">
-            <Step number={1} text="Connect Wallet" />
+            <Step number={1} text="Pick a Market" />
             <Arrow />
-            <Step number={2} text="Stake $OPENWORK" />
+            <Step number={2} text="Review & Predict" />
             <Arrow />
-            <Step number={3} text="Write Review" />
+            <Step number={3} text="Stake OPEN" />
             <Arrow />
-            <Step number={4} text="Earn Reputation" />
+            <Step number={4} text="Win Rewards" />
           </div>
         </div>
       </section>
@@ -121,4 +143,17 @@ function Step({ number, text }: { number: number; text: string }) {
 
 function Arrow() {
   return <span className="text-gray-600 hidden md:block">→</span>
+}
+
+function MarketCard({ category, icon, label, count }: { category: string; icon: string; label: string; count: number }) {
+  return (
+    <Link 
+      href={`/leaderboard?category=${category}`}
+      className="bg-kindred-dark border border-gray-800 rounded-xl p-6 hover:border-kindred-primary transition group"
+    >
+      <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">{icon}</div>
+      <h3 className="text-lg font-semibold mb-1">{label}</h3>
+      <p className="text-sm text-gray-500">{count} predictions</p>
+    </Link>
+  )
 }
