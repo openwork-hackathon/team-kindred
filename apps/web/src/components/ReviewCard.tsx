@@ -16,6 +16,11 @@ interface ReviewCardProps {
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
+  'k/memecoin': '🐸',
+  'k/defi': '🏦',
+  'k/perp-dex': '📈',
+  'k/ai': '🤖',
+  // Legacy support
   protocol: '⚡',
   token: '🪙',
   nft: '🖼️',

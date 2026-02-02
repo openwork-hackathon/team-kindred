@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 
-type Category = 'product' | 'service' | 'protocol' | 'nft' | 'token'
+type Category = 'k/memecoin' | 'k/defi' | 'k/perp-dex' | 'k/ai'
 
 interface ReviewFormData {
   targetAddress: string
@@ -12,14 +12,14 @@ interface ReviewFormData {
   content: string
   category: Category
   stakeAmount: string
+  predictedRank?: number // Opinion market: where will this rank?
 }
 
-const CATEGORIES: { value: Category; label: string; icon: string }[] = [
-  { value: 'protocol', label: 'Protocol', icon: '⚡' },
-  { value: 'token', label: 'Token', icon: '🪙' },
-  { value: 'nft', label: 'NFT', icon: '🖼️' },
-  { value: 'product', label: 'Product', icon: '📦' },
-  { value: 'service', label: 'Service', icon: '🛠️' },
+const CATEGORIES: { value: Category; label: string; icon: string; description: string }[] = [
+  { value: 'k/memecoin', label: 'Memecoins', icon: '🐸', description: 'PEPE, DOGE, WIF...' },
+  { value: 'k/defi', label: 'DeFi', icon: '🏦', description: 'Aave, Compound, Uniswap...' },
+  { value: 'k/perp-dex', label: 'Perp DEX', icon: '📈', description: 'GMX, dYdX, Hyperliquid...' },
+  { value: 'k/ai', label: 'AI Agents', icon: '🤖', description: 'AI16Z, Virtual, Griffain...' },
 ]
 
 const STAKE_OPTIONS = [
@@ -39,8 +39,9 @@ export function ReviewForm() {
     targetAddress: '',
     rating: 0,
     content: '',
-    category: 'protocol',
+    category: 'k/defi',
     stakeAmount: '0',
+    predictedRank: undefined,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,8 +113,9 @@ export function ReviewForm() {
               targetAddress: '',
               rating: 0,
               content: '',
-              category: 'protocol',
+              category: 'k/defi',
               stakeAmount: '0',
+              predictedRank: undefined,
             })
           }}
           className="bg-kindred-primary hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition"
@@ -154,22 +156,25 @@ export function ReviewForm() {
       {/* Category */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-400 mb-2">
-          Category
+          Market Category
         </label>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.value}
               type="button"
               onClick={() => setFormData({ ...formData, category: cat.value })}
-              className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border transition ${
+              className={`flex flex-col items-start p-4 rounded-lg border transition ${
                 formData.category === cat.value
                   ? 'border-kindred-primary bg-kindred-primary/20 text-white'
                   : 'border-gray-700 text-gray-400 hover:border-gray-500'
               }`}
             >
-              <span>{cat.icon}</span>
-              <span className="text-sm">{cat.label}</span>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">{cat.icon}</span>
+                <span className="font-semibold">{cat.label}</span>
+              </div>
+              <span className="text-xs text-gray-500">{cat.description}</span>
             </button>
           ))}
         </div>
@@ -199,13 +204,44 @@ export function ReviewForm() {
         </div>
       </div>
 
+      {/* Predicted Rank - Opinion Market */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-lg">
+        <label className="block text-sm font-medium text-purple-300 mb-2">
+          🔮 Opinion Market: Predict This Week's Rank
+        </label>
+        <p className="text-xs text-gray-400 mb-3">
+          Where will this project rank in {formData.category} by end of week? Stake to earn if you're right!
+        </p>
+        <div className="grid grid-cols-5 gap-2">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rank) => (
+            <button
+              key={rank}
+              type="button"
+              onClick={() => setFormData({ ...formData, predictedRank: rank })}
+              className={`py-2 rounded-lg border font-bold transition ${
+                formData.predictedRank === rank
+                  ? 'border-purple-500 bg-purple-500/30 text-white'
+                  : 'border-gray-700 text-gray-500 hover:border-purple-500/50'
+              }`}
+            >
+              #{rank}
+            </button>
+          ))}
+        </div>
+        {formData.predictedRank && (
+          <p className="text-xs text-purple-300 mt-2">
+            You predict this will be <strong>#{formData.predictedRank}</strong> in {formData.category} rankings
+          </p>
+        )}
+      </div>
+
       {/* Content */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-400 mb-2">
           Review Content
         </label>
         <textarea
-          placeholder="Share your experience... (minimum 10 characters)"
+          placeholder="Share your analysis... Why will this project rank where you predict? (minimum 10 characters)"
           value={formData.content}
           onChange={(e) => setFormData({ ...formData, content: e.target.value })}
           rows={5}
