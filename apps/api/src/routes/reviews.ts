@@ -63,6 +63,7 @@ router.post('/', (req, res) => {
       content: input.content,
       category: input.category,
       stakeAmount: input.stakeAmount || '0',
+      photoUrls: input.photoUrls || [],
       upvotes: 0,
       downvotes: 0,
       createdAt: new Date(),

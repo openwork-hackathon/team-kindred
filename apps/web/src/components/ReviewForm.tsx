@@ -12,6 +12,7 @@ interface ReviewFormData {
   content: string
   category: Category
   stakeAmount: string
+  photos: File[]
 }
 
 const CATEGORIES: { value: Category; label: string; icon: string }[] = [
@@ -41,7 +42,49 @@ export function ReviewForm() {
     content: '',
     category: 'protocol',
     stakeAmount: '0',
+    photos: [],
   })
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length + formData.photos.length > 5) {
+      setError('Maximum 5 photos allowed')
+      return
+    }
+    
+    // Validate file types and sizes
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        setError('Only image files are allowed')
+        return false
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        setError('Each photo must be under 5MB')
+        return false
+      }
+      return true
+    })
+
+    setFormData({ ...formData, photos: [...formData.photos, ...validFiles] })
+    
+    // Create previews
+    validFiles.forEach(file => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPhotoPreviews(prev => [...prev, reader.result as string])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const removePhoto = (index: number) => {
+    setFormData({
+      ...formData,
+      photos: formData.photos.filter((_, i) => i !== index)
+    })
+    setPhotoPreviews(prev => prev.filter((_, i) => i !== index))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,7 +157,9 @@ export function ReviewForm() {
               content: '',
               category: 'protocol',
               stakeAmount: '0',
+              photos: [],
             })
+            setPhotoPreviews([])
           }}
           className="bg-kindred-primary hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition"
         >
@@ -213,6 +258,58 @@ export function ReviewForm() {
         />
         <p className="text-xs text-gray-500 mt-1">
           {formData.content.length}/2000 characters
+        </p>
+      </div>
+
+      {/* Photo Upload */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-400 mb-2">
+          Photos (Optional)
+        </label>
+        <p className="text-xs text-gray-500 mb-3">
+          Add up to 5 photos to support your review
+        </p>
+        
+        {/* Photo Previews */}
+        {photoPreviews.length > 0 && (
+          <div className="grid grid-cols-5 gap-2 mb-3">
+            {photoPreviews.map((preview, index) => (
+              <div key={index} className="relative group">
+                <img
+                  src={preview}
+                  alt={`Preview ${index + 1}`}
+                  className="w-full h-20 object-cover rounded-lg border border-gray-700"
+                />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(index)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Upload Button */}
+        {formData.photos.length < 5 && (
+          <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-dashed border-gray-600 hover:border-kindred-primary cursor-pointer transition">
+            <span className="text-xl">📷</span>
+            <span className="text-gray-400">
+              {formData.photos.length === 0 ? 'Add Photos' : 'Add More'}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+          </label>
+        )}
+        <p className="text-xs text-gray-500 mt-1">
+          {formData.photos.length}/5 photos • Max 5MB each
         </p>
       </div>
 

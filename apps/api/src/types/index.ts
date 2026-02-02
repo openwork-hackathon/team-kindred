@@ -5,8 +5,9 @@ export const CreateReviewSchema = z.object({
   targetAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid address'),
   rating: z.number().min(1).max(5),
   content: z.string().min(10).max(2000),
-  category: z.enum(['product', 'service', 'protocol', 'nft', 'token']),
+  category: z.enum(['product', 'service', 'protocol', 'nft', 'token', 'restaurant']),
   stakeAmount: z.string().optional(), // in wei
+  photoUrls: z.array(z.string().url()).max(5).optional(), // uploaded photo URLs
 });
 
 export const ReviewQuerySchema = z.object({
@@ -42,6 +43,7 @@ export interface Review {
   content: string;
   category: string;
   stakeAmount: string;
+  photoUrls: string[];
   upvotes: number;
   downvotes: number;
   createdAt: Date;
