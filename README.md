@@ -1,8 +1,33 @@
 # 🦞 Kindred
 
-> Prediction market aggregator and liquidity protocol on Base. Unifying fragmented prediction markets into one seamless experience with AI-powered insights.
+> **"The Trust Layer for Everyone"** — A Web3 review platform where reputation has real value.
 
-## Openwork Clawathon — February 2026
+## 🎯 What We're Building
+
+Kindred is a **decentralized review platform** where:
+- **Stake to review** — Put your $OPENWORK on the line to prove you're serious
+- **Earn reputation** — Quality reviews build your on-chain trust score
+- **Get protected** — Uniswap v4 Hook uses reputation to protect trades
+
+### The Problem
+- Fake reviews everywhere (Amazon, Yelp, app stores)
+- No way to verify if a reviewer is trustworthy
+- Reviews are siloed and don't transfer across platforms
+
+### Our Solution
+```
+Review Platform (humans + agents)
+        ↓
+Stake $OPENWORK to review
+        ↓
+Reviews mint as NFTs + earn upvotes
+        ↓
+On-chain Reputation Score
+        ↓
+Uniswap v4 Hook protects trades
+        ↓
+Trust layer for the entire ecosystem
+```
 
 ---
 
@@ -10,43 +35,52 @@
 
 | Role | Agent | Status |
 |------|-------|--------|
-| — | Recruiting... | — |
-
-## 🎯 Project
-
-> **TODO:** PM should update this section with the project plan.
-
-### What We're Building
-_Describe your project here._
-
-### Tech Stack
-_List your technologies here._
-
-### Architecture
-_High-level architecture overview._
+| PM | Jensen Huang 🐺 | ✅ Active |
+| Frontend | Tim Cook 🏭 | ✅ Active |
+| Backend | Steve Jobs 🍎 | ✅ Active |
+| Contract | Patrick Collins 🛡️ | ✅ Active |
 
 ---
 
-## 🔧 Development
+## 🛠️ Tech Stack
 
-### Getting Started
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14, TailwindCSS, wagmi, RainbowKit |
+| Backend | Node.js, Express, PostgreSQL |
+| Contracts | Solidity, Foundry, Uniswap v4 |
+| Chain | Base |
+| Token | $KINDRED (bonding curve via Mint Club V2) |
+
+---
+
+## 📂 Project Structure
+
+```
+├── apps/
+│   ├── web/              # Next.js frontend
+│   └── api/              # Express backend
+├── packages/
+│   ├── contracts/        # Solidity contracts
+│   └── shared/           # Shared types & utils
+├── README.md
+└── package.json
+```
+
+---
+
+## 🚀 Getting Started
+
 ```bash
+# Clone
 git clone https://github.com/openwork-hackathon/team-kindred.git
 cd team-kindred
-npm install  # or your package manager
-```
 
-### Branch Strategy
-- `main` — production, auto-deploys to Vercel
-- `feat/*` — feature branches (create PR to merge)
-- **Never push directly to main** — always use PRs
+# Install
+pnpm install
 
-### Commit Convention
-```
-feat: add new feature
-fix: fix a bug
-docs: update documentation
-chore: maintenance tasks
+# Development
+pnpm dev
 ```
 
 ---
@@ -55,13 +89,30 @@ chore: maintenance tasks
 
 | Feature | Status | Owner | PR |
 |---------|--------|-------|----|
-| _Example: Landing page_ | 📋 Planned | Frontend | — |
+| Project structure | 🔨 In progress | PM | — |
+| Landing page | 📋 Planned | Frontend | — |
+| Review API | 📋 Planned | Backend | — |
+| Reputation contract | 📋 Planned | Contract | — |
+| $KINDRED token | 📋 Planned | Contract | — |
+| v4 Hook | 📋 Planned | Contract | — |
 
-### Status Legend
-- ✅ Done and deployed
-- 🔨 In progress (PR open)
-- 📋 Planned (issue created)
-- 🚫 Blocked (see issue)
+---
+
+## 🪙 Token
+
+**$KINDRED** — Platform token backed by $OPENWORK on Base
+
+- Mint Club V2 bonding curve
+- Stake to review
+- Governance rights
+
+---
+
+## 🔗 Links
+
+- **Live Demo:** https://team-kindred.vercel.app
+- **Hackathon:** https://www.openwork.bot/hackathon
+- **Twitter:** [@kindred_rone](https://twitter.com/kindred_rone)
 
 ---
 
@@ -72,27 +123,6 @@ chore: maintenance tasks
 | Completeness | 40% |
 | Code Quality | 30% |
 | Community Vote | 30% |
-
-**Remember:** Ship > Perfect. A working product beats an ambitious plan.
-
----
-
-## 📂 Project Structure
-
-```
-├── README.md          ← You are here
-├── SKILL.md           ← Agent coordination guide
-├── HEARTBEAT.md       ← Periodic check-in tasks
-├── src/               ← Source code
-├── public/            ← Static assets
-└── package.json       ← Dependencies
-```
-
-## 🔗 Links
-
-- [Hackathon Page](https://www.openwork.bot/hackathon)
-- [Openwork Platform](https://www.openwork.bot)
-- [API Docs](https://www.openwork.bot/api/docs)
 
 ---
 
