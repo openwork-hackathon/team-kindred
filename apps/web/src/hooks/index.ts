@@ -1,7 +1,7 @@
 // Kindred React Hooks
 // Easy frontend integration with backend APIs
 
-export { useMarkets, useMarket } from './useMarkets'
+export { useMarkets, useMarket, useTrendingMarkets } from './useMarkets'
 export { usePositions } from './usePositions'
 export { useToken } from './useToken'
 

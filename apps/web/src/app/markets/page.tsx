@@ -3,27 +3,28 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useAccount } from 'wagmi'
-import { Search, TrendingUp, Filter, RefreshCw, ExternalLink } from 'lucide-react'
-import { useMarkets } from '@/hooks'
+import { Search, TrendingUp, RefreshCw, ExternalLink, Flame, ChevronRight } from 'lucide-react'
+import { useMarkets, useTrendingMarkets } from '@/hooks'
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
-  { id: 'crypto', label: 'Crypto' },
-  { id: 'defi', label: 'DeFi' },
-  { id: 'politics', label: 'Politics' },
-  { id: 'sports', label: 'Sports' },
+  { id: 'crypto', label: '🪙 Crypto' },
+  { id: 'defi', label: '🏦 DeFi' },
+  { id: 'politics', label: '🏛️ Politics' },
+  { id: 'sports', label: '⚽ Sports' },
 ]
 
 export default function MarketsPage() {
   const [category, setCategory] = useState<string>('all')
   const [search, setSearch] = useState('')
   
+  const { markets: trendingMarkets, isLoading: trendingLoading } = useTrendingMarkets(5)
+  
   const { markets, isLoading, error, refetch } = useMarkets({
     category: category === 'all' ? undefined : category,
     search: search || undefined,
     limit: 20,
-    autoRefresh: 60000, // Refresh every minute
+    autoRefresh: 60000,
   })
 
   return (
@@ -37,6 +38,7 @@ export default function MarketsPage() {
           <nav className="flex items-center gap-6">
             <Link href="/app" className="text-sm text-[#adadb0] hover:text-white">App</Link>
             <Link href="/markets" className="text-sm text-purple-400">Markets</Link>
+            <Link href="/portfolio" className="text-sm text-[#adadb0] hover:text-white">Portfolio</Link>
             <Link href="/leaderboard" className="text-sm text-[#adadb0] hover:text-white">Leaderboard</Link>
           </nav>
           <ConnectButton />
@@ -48,9 +50,24 @@ export default function MarketsPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Prediction Markets</h1>
           <p className="text-[#adadb0]">
-            Live markets aggregated from Polymarket. Take positions and earn rewards.
+            Live markets from Polymarket + Kindred DeFi predictions. Take positions and earn rewards.
           </p>
         </div>
+
+        {/* Trending Section */}
+        {!trendingLoading && trendingMarkets.length > 0 && (
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-4">
+              <Flame className="w-5 h-5 text-orange-500" />
+              <h2 className="text-xl font-semibold">Trending Now</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              {trendingMarkets.slice(0, 5).map((market: any) => (
+                <TrendingCard key={market.id} market={market} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
@@ -67,7 +84,7 @@ export default function MarketsPage() {
           </div>
 
           {/* Category Tabs */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
@@ -113,7 +130,7 @@ export default function MarketsPage() {
 
         {/* Markets Grid */}
         <div className="grid gap-4">
-          {markets.map((market) => (
+          {markets.map((market: any) => (
             <MarketCard key={market.id} market={market} />
           ))}
         </div>
@@ -131,6 +148,38 @@ export default function MarketsPage() {
   )
 }
 
+// Compact trending card
+function TrendingCard({ market }: { market: any }) {
+  const yesPrice = market.outcomes?.[0]?.price || 0.5
+  
+  return (
+    <Link 
+      href={`/markets/${market.id}`}
+      className="p-4 bg-[#111113] border border-[#1f1f23] rounded-xl hover:border-orange-500/30 transition-colors group"
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+          market.source === 'polymarket' 
+            ? 'bg-blue-500/10 text-blue-400' 
+            : 'bg-purple-500/10 text-purple-400'
+        }`}>
+          {market.category}
+        </span>
+      </div>
+      <h3 className="text-sm font-medium mb-3 line-clamp-2 group-hover:text-white transition-colors">
+        {market.question}
+      </h3>
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-bold text-green-500">
+          {(yesPrice * 100).toFixed(0)}%
+        </div>
+        <ChevronRight className="w-4 h-4 text-[#6b6b70] group-hover:text-white transition-colors" />
+      </div>
+    </Link>
+  )
+}
+
+// Full market card
 function MarketCard({ market }: { market: any }) {
   const yesPrice = market.outcomes?.[0]?.price || 0.5
   const noPrice = market.outcomes?.[1]?.price || 0.5
@@ -143,7 +192,9 @@ function MarketCard({ market }: { market: any }) {
             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
               market.source === 'polymarket' 
                 ? 'bg-blue-500/10 text-blue-400' 
-                : 'bg-purple-500/10 text-purple-400'
+                : market.source === 'kindred'
+                ? 'bg-purple-500/10 text-purple-400'
+                : 'bg-gray-500/10 text-gray-400'
             }`}>
               {market.source}
             </span>
@@ -152,6 +203,9 @@ function MarketCard({ market }: { market: any }) {
             </span>
           </div>
           <h3 className="text-lg font-semibold mb-1">{market.question}</h3>
+          {market.description && (
+            <p className="text-sm text-[#6b6b70] line-clamp-1 mb-1">{market.description}</p>
+          )}
           {market.endDate && (
             <p className="text-sm text-[#6b6b70]">
               Ends: {new Date(market.endDate).toLocaleDateString()}
@@ -159,9 +213,9 @@ function MarketCard({ market }: { market: any }) {
           )}
         </div>
         
-        {market.source === 'polymarket' && (
+        {market.polymarketUrl && (
           <a
-            href={`https://polymarket.com/event/${market.slug}`}
+            href={market.polymarketUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="p-2 text-[#6b6b70] hover:text-white transition-colors"

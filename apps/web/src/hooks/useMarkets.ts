@@ -93,4 +93,30 @@ export function useMarket(id: string | null) {
   return { market, isLoading, error }
 }
 
+// Hook for trending markets
+export function useTrendingMarkets(limit = 5) {
+  const [markets, setMarkets] = useState<Market[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchTrending = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/markets/trending?limit=${limit}`)
+        const data = await response.json()
+        setMarkets(data.markets || [])
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch trending')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchTrending()
+  }, [limit])
+
+  return { markets, isLoading, error }
+}
+
 export default useMarkets
