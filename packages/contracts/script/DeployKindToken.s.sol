@@ -34,7 +34,7 @@ interface IMintClubBond {
 contract DeployKindToken is Script {
     // Mint Club V2 on Base
     address constant MCV2_BOND = 0xc5a076cad94176c2996B32d8466Be1cE757FAa27;
-    address constant OPENWORK = 0x299c30DD5974BF4D5bFE42C340Ca40462816AB07;
+    address constant OPENWORK = 0x299c30DD5974BF4D5bFE42C340CA40462816AB07;
     
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
