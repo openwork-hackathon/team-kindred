@@ -9,6 +9,7 @@ const API_BASE = '/api'
 export interface Market {
   id: string
   question: string
+  description?: string
   slug: string
   category: string
   source: 'polymarket' | 'prediction-market'
@@ -17,6 +18,8 @@ export interface Market {
   liquidity: string
   endDate: string | null
   resolved: boolean
+  polymarketUrl?: string
+  image?: string
 }
 
 export interface Position {
