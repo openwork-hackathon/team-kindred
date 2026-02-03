@@ -8,6 +8,7 @@ import {
   BarChart2, Coins, Dog, BookOpen, HelpCircle,
   ToggleLeft, Store, Key, Terminal, Brain, Shield
 } from 'lucide-react'
+import { BuyToken, KindPrice } from './BuyToken'
 
 export function HomePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -43,7 +44,9 @@ export function HomePage() {
           />
         </div>
 
-        <div className="flex gap-3 ml-auto">
+        <div className="flex items-center gap-3 ml-auto">
+          <KindPrice />
+          <BuyToken variant="small" />
           <button 
             onClick={() => setAgentMode(!agentMode)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all border ${
@@ -188,6 +191,7 @@ export function HomePage() {
               <Link href="/review" className="px-6 py-3 rounded-lg text-sm font-medium bg-gradient-to-br from-purple-500 to-purple-700 text-white hover:translate-y-[-2px] hover:shadow-lg hover:shadow-purple-500/30 transition-all">
                 Write a Review
               </Link>
+              <BuyToken variant="secondary" />
               <Link href="/leaderboard" className="px-6 py-3 rounded-lg text-sm font-medium bg-transparent border border-[#2a2a2e] text-[#adadb0] hover:bg-[#111113] hover:text-white transition-all">
                 View Leaderboard
               </Link>
