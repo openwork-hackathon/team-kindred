@@ -36,6 +36,7 @@ contract KindredHook {
     
     error ReputationTooLow(address account, uint256 score);
     error AccountBlocked(address account);
+    error ZeroAddress();
     
     // ============ Events ============
     
@@ -48,6 +49,7 @@ contract KindredHook {
     // ============ Constructor ============
     
     constructor(address _reputationOracle) {
+        if (_reputationOracle == address(0)) revert ZeroAddress();
         reputationOracle = IReputationOracle(_reputationOracle);
     }
 

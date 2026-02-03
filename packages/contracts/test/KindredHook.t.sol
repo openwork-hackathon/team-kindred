@@ -139,4 +139,66 @@ contract KindredHookTest is Test {
             assertTrue(hook.calculateFee(score1) <= hook.calculateFee(score2));
         }
     }
+    
+    // ============ Boundary Value Tests ============
+    
+    function test_CalculateFee_ExactBoundaries() public view {
+        // Test exact boundary values
+        assertEq(hook.calculateFee(100), 50);   // MIN_SCORE - still risky
+        assertEq(hook.calculateFee(399), 50);   // Just below normal
+        assertEq(hook.calculateFee(400), 30);   // Exact normal threshold
+        assertEq(hook.calculateFee(699), 30);   // Just below trusted
+        assertEq(hook.calculateFee(700), 20);   // Exact trusted threshold
+        assertEq(hook.calculateFee(899), 20);   // Just below elite
+        assertEq(hook.calculateFee(900), 10);   // Exact elite threshold
+    }
+    
+    function test_CanTrade_AtMinimumScore() public {
+        // Test exactly at minimum score
+        address minUser = address(0x7);
+        oracle.setScore(minUser, 100);  // Exactly MIN_SCORE_TO_TRADE
+        assertTrue(hook.canTrade(minUser));
+        
+        // Just below minimum
+        address belowMinUser = address(0x8);
+        oracle.setScore(belowMinUser, 99);
+        assertFalse(hook.canTrade(belowMinUser));
+    }
+    
+    function test_ValidateTrade_AtMinimumScore() public {
+        address minUser = address(0x9);
+        oracle.setScore(minUser, 100);
+        uint24 fee = hook.validateTrade(minUser);
+        assertEq(fee, 50);  // Should get risky tier fee
+    }
+    
+    // ============ Zero Address Tests ============
+    
+    function test_Constructor_RevertsOnZeroAddress() public {
+        vm.expectRevert(KindredHook.ZeroAddress.selector);
+        new KindredHook(address(0));
+    }
+    
+    // ============ Score Above 1000 Tests ============
+    
+    function test_CalculateFee_AboveMaxScore() public view {
+        // Scores above 1000 should still get elite rate
+        assertEq(hook.calculateFee(1001), 10);
+        assertEq(hook.calculateFee(10000), 10);
+        assertEq(hook.calculateFee(type(uint256).max), 10);
+    }
+    
+    // ============ Oracle Integration Tests ============
+    
+    function test_GetFeeForAccount_UnknownAddress() public view {
+        // Unknown address should have score 0 (risky fee)
+        address unknown = address(0xDEAD);
+        assertEq(hook.getFeeForAccount(unknown), 50);
+    }
+    
+    function test_CanTrade_UnknownAddress() public view {
+        // Unknown address has score 0 < 100, cannot trade
+        address unknown = address(0xDEAD);
+        assertFalse(hook.canTrade(unknown));
+    }
 }
