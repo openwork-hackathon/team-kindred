@@ -1,21 +1,10 @@
 import { NextResponse } from 'next/server'
+import type { PlatformStats } from '@kindred/shared'
 
 export const dynamic = 'force-dynamic'
 
 // Platform statistics endpoint
 // Used by HomePage StatCard components
-
-interface PlatformStats {
-  totalReviews: number
-  totalStaked: string // in wei
-  totalStakedFormatted: string
-  activeUsers: number
-  projectsRated: number
-  avgRating: number
-  totalPayouts: string
-  winRate: number // percentage of correct predictions
-  lastUpdated: string
-}
 
 // Mock stats (replace with DB aggregation)
 const stats: PlatformStats = {
