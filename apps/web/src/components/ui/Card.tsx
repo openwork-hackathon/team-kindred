@@ -1,8 +1,26 @@
 'use client'
 
-export function Card({ className = '', children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  hoverable?: boolean
+  padding?: 'none' | 'sm' | 'md' | 'lg'
+}
+
+const paddingMap = {
+  none: 'p-0',
+  sm: 'p-4',
+  md: 'p-6',
+  lg: 'p-8',
+}
+
+export function Card({ className = '', children, hoverable = false, padding = 'md', ...props }: CardProps) {
+  const hoverStyles = hoverable 
+    ? 'hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-500/10 transition-all cursor-pointer' 
+    : ''
+  
+  const paddingStyles = paddingMap[padding]
+  
   return (
-    <div className={`p-6 bg-[#111113] border border-[#1f1f23] rounded-xl ${className}`} {...props}>
+    <div className={`${paddingStyles} bg-[#111113] border border-[#1f1f23] rounded-xl ${hoverStyles} ${className}`} {...props}>
       {children}
     </div>
   )
