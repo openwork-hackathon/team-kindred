@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { reviewRoutes } from './routes/reviews';
 import { reputationRoutes } from './routes/reputation';
 import { stakeRoutes } from './routes/stake';
+import { tokenRoutes } from './routes/token';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.get('/health', (req, res) => {
 app.use('/reviews', reviewRoutes);
 app.use('/reputation', reputationRoutes);
 app.use('/stake', stakeRoutes);
+app.use('/token', tokenRoutes);
 
 // Error handler
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
