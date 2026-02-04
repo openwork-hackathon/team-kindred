@@ -1,11 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter, DM_Mono } from 'next/font/google'
 import './globals.css'
-import dynamic from 'next/dynamic'
-
-const Providers = dynamic(() => import('./providers').then(mod => mod.Providers), {
-  ssr: false,
-})
+import { Providers } from './providers' // Don't lazy load providers to avoid hydration mismatch if possible, or keep dynamic if needed
+import { ClientLayout } from '@/components/ClientLayout'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -21,6 +18,10 @@ const dmMono = DM_Mono({
 export const metadata: Metadata = {
   title: 'Kindred | Trust Layer for Everyone',
   description: 'A Web3 review platform where reputation has real value',
+  icons: {
+    icon: '/logo.jpg',
+    apple: '/logo.jpg',
+  },
 }
 
 export default function RootLayout({
@@ -39,7 +40,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} ${dmMono.variable} font-sans`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </Providers>
       </body>
     </html>
   )
