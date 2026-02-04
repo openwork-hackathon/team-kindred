@@ -1,11 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false, // Disable strict mode in dev to reduce double-renders
   transpilePackages: ['@kindred/ui'],
   webpack: (config) => {
     config.resolve.alias['@react-native-async-storage/async-storage'] = false
     return config
   },
+  // Optimize for faster builds
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@rainbow-me/rainbowkit'],
+  },
 }
 
 module.exports = nextConfig
+
