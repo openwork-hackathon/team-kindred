@@ -2,6 +2,8 @@ import { http, createConfig } from 'wagmi'
 import { mainnet, polygon, base, sepolia, baseSepolia } from 'wagmi/chains'
 import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 
+import { cookieStorage, createStorage } from 'wagmi' // Import these
+
 export const config = getDefaultConfig({
   appName: 'Kindred',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo',
@@ -14,4 +16,7 @@ export const config = getDefaultConfig({
     [baseSepolia.id]: http(),
   },
   ssr: true,
+  storage: createStorage({
+    storage: cookieStorage,
+  }),
 })

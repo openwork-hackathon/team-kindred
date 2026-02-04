@@ -15,25 +15,25 @@ const config: Config = {
       },
       colors: {
         kindred: {
-          // Dark theme colors
+          primary: '#572f61', // New Primary (Deep Purple)
           bg: {
-            primary: '#0a0a0b',
-            secondary: '#111113',
-            tertiary: '#0d0d0e',
+            primary: '#1a0e2e', // New Background (Deepest Purple)
+            secondary: '#24123d', // Slightly lighter for cards
+            tertiary: '#2d164d', // Borders/Accents
           },
           border: {
-            DEFAULT: '#1f1f23',
-            light: '#2a2a2e',
+            DEFAULT: '#2d164d',
+            light: '#572f61',
           },
           text: {
-            primary: '#ffffff',
+            primary: '#d9d4e8', // New Text Highlight
             secondary: '#adadb0',
             muted: '#6b6b70',
             dark: '#8b8b90',
           },
           accent: {
-            purple: '#a855f7',
-            'purple-dark': '#7c3aed',
+            purple: '#d9d4e8', // Use Highlight as accent
+            'purple-dark': '#572f61',
             green: '#22c55e',
             orange: '#ff8a4c',
             red: '#ef4444',

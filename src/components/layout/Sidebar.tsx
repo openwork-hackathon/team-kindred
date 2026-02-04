@@ -24,6 +24,7 @@ import {
   Settings,
   ToggleLeft,
 } from "lucide-react";
+import { useStore } from "@/lib/store";
 
 // Types
 type SidebarSection =
@@ -50,6 +51,7 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     "my-boards": true,
   });
   const [agentMode, setAgentMode] = useState(false);
+  const communities = useStore(state => state.communities)
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) => ({
@@ -258,6 +260,30 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
 
         {openSections["communities"] && (
           <div className="flex flex-col">
+            {/* Store Communities (Dynamic) */}
+            {communities.slice(0, 10).map((comm) => (
+              <Link
+                key={comm.id}
+                href={`/project/${comm.id}`}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0] border-l-[3px] border-transparent hover:bg-purple-500/5 hover:text-white transition-colors"
+              >
+                <div className="w-7 h-7 rounded-md bg-[#2a2a2e] text-white flex items-center justify-center text-[10px] font-bold">
+                  {comm.name.replace('r/', '').slice(0, 2).toUpperCase()}
+                </div>
+                <span>{comm.name}</span>
+                <span className="ml-auto px-2 py-0.5 bg-[#2a2a2e] text-[#adadb0] text-[10px] font-bold rounded-full">
+                  {comm.memberCount}
+                </span>
+              </Link>
+            ))}
+            
+            {/* Fallback/Default if empty */}
+            {communities.length === 0 && (
+              <div className="px-4 py-2 text-xs text-[#6b6b70]">
+                Search projects to add communities...
+              </div>
+            )}
+            
             <Link
               href="/leaderboard?category=k/perp-dex"
               className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0] border-l-[3px] border-transparent hover:bg-purple-500/5 hover:text-white transition-colors"
