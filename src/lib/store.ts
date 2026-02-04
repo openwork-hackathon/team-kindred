@@ -43,12 +43,20 @@ interface AppState {
   userStakedBalance: number // Mock $OPENWORK balance
   joinedCommunityIds: string[]
 
+  // Loading State
+  loadingOperations: Record<string, boolean>
+
   // Actions
   addProject: (project: Project) => void
   joinCommunity: (communityId: string) => void
   leaveCommunity: (communityId: string) => void
   addReview: (review: Omit<Review, 'id' | 'timestamp' | 'upvotes' | 'isERC404'>) => boolean // Returns success (check staking)
   buyReview: (reviewId: string) => void // Upvote = Buy logic
+  
+  // Loading Actions
+  setLoading: (key: string, value: boolean) => void
+  isLoading: (key: string) => boolean
+  anyLoading: () => boolean
   
   // Helpers
   getProject: (id: string) => Project | undefined
@@ -62,6 +70,14 @@ export const useStore = create<AppState>()(
       communities: [],
       userStakedBalance: 1000, // Give user some initial mock tokens to test staking
       joinedCommunityIds: [],
+      loadingOperations: {},
+
+      // Loading Actions
+      setLoading: (key, value) => set((state) => ({
+        loadingOperations: { ...state.loadingOperations, [key]: value }
+      })),
+      isLoading: (key) => get().loadingOperations[key] ?? false,
+      anyLoading: () => Object.values(get().loadingOperations).some(v => v),
 
       addProject: (newProject) => set((state) => {
         // Prevent duplicates
