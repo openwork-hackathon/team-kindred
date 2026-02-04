@@ -18,6 +18,10 @@ const dmMono = DM_Mono({
 export const metadata: Metadata = {
   title: 'Kindred | Trust Layer for Everyone',
   description: 'A Web3 review platform where reputation has real value',
+  icons: {
+    icon: '/logo.jpg',
+    apple: '/logo.jpg',
+  },
 }
 
 export default function RootLayout({
