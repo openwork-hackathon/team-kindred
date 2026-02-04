@@ -1,69 +1,87 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { TrendingUp, TrendingDown, Minus, ChevronDown, Flame, Clock, Award, BarChart3, ArrowUpRight } from 'lucide-react'
 
-import { PROJECTS, CATEGORIES, Project, Category } from '@/data/mock'
+import { CATEGORIES, Category } from '@/data/mock'
+import { useStore } from '@/lib/store'
 
 function formatNumber(n: number): string {
+  if (n === undefined) return '0'
   if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`
   if (n >= 1000) return `${(n / 1000).toFixed(0)}K`
   return n.toString()
 }
 
-function MindshareBar({ value, color, maxValue }: { value: number; color: string; maxValue: number }) {
-  const width = (value / maxValue) * 100
+// Helper Components
+function ChangeIndicator({ value }: { value: number }) {
+  if (value > 0) return <div className="flex items-center text-green-400 text-xs font-bold gap-0.5"><TrendingUp className="w-3 h-3" />+{value}%</div>
+  if (value < 0) return <div className="flex items-center text-red-400 text-xs font-bold gap-0.5"><TrendingDown className="w-3 h-3" />{value}%</div>
+  return <div className="flex items-center text-[#6b6b70] text-xs font-bold gap-0.5"><Minus className="w-3 h-3" />0%</div>
+}
+
+function MindshareBar({ value, maxValue, color }: { value: number, maxValue: number, color: string }) {
+  const percentage = Math.min((value / maxValue) * 100, 100)
   return (
-    <div className="w-full h-2 bg-[#1a1a1d] rounded-full overflow-hidden">
+    <div className="h-1.5 w-full bg-[#1a1a1d] rounded-full overflow-hidden">
       <div 
-        className="h-full rounded-full transition-all duration-500"
-        style={{ width: `${width}%`, backgroundColor: color }}
+        className="h-full rounded-full transition-all duration-500" 
+        style={{ width: `${percentage}%`, backgroundColor: color }}
       />
     </div>
   )
 }
 
-function ChangeIndicator({ value }: { value: number }) {
-  if (value > 0) return (
-    <span className="flex items-center gap-0.5 text-green-400 text-sm font-medium">
-      <TrendingUp className="w-3.5 h-3.5" />
-      +{value.toFixed(1)}%
-    </span>
-  )
-  if (value < 0) return (
-    <span className="flex items-center gap-0.5 text-red-400 text-sm font-medium">
-      <TrendingDown className="w-3.5 h-3.5" />
-      {value.toFixed(1)}%
-    </span>
-  )
-  return (
-    <span className="flex items-center gap-0.5 text-[#6b6b70] text-sm font-medium">
-      <Minus className="w-3.5 h-3.5" />
-      0.0%
-    </span>
-  )
-}
-
 function SentimentDot({ value }: { value: number }) {
-  const color = value >= 80 ? 'bg-green-400' : value >= 60 ? 'bg-yellow-400' : 'bg-red-400'
+  // Value 0-100
+  let color = 'bg-gray-500'
+  if (value >= 66) color = 'bg-green-500'
+  else if (value >= 33) color = 'bg-yellow-500'
+  else color = 'bg-red-500'
+  
   return (
-    <div className="flex items-center gap-1.5">
-      <div className={`w-2 h-2 rounded-full ${color}`} />
-      <span className="text-sm text-[#adadb0]">{value}</span>
-    </div>
+    <div className={`w-2 h-2 rounded-full ${color}`} title={`Sentiment: ${value}`} />
   )
 }
 
 export function MindshareBoard() {
+  const searchParams = useSearchParams()
+  const urlCategory = searchParams.get('category') as Category
+  
   const [category, setCategory] = useState<Category>('all')
   const [timeRange, setTimeRange] = useState<string>('7d')
+  
+  // Sync state with URL params
+  useEffect(() => {
+    if (urlCategory && CATEGORIES.some(c => c.id === urlCategory)) {
+      setCategory(urlCategory)
+    } else {
+      setCategory('all')
+    }
+  }, [urlCategory])
+
+  // Use global dynamic store
+  const projects = useStore(state => state.projects)
+
+  // Map store projects to UI format (if needed) or use directly
+  // The store uses 'score' as main metric, we can map to mindshare for UI compat or rename
+  const uiProjects = projects.map((p, index) => ({
+    ...p,
+    rank: index + 1, // Fix missing rank
+    mindshare: p.score * 20, // Map 5.0 score to 100% scale for visualization if needed, or just use raw
+    mindshareChange: 0, // No historical data in lightweight store yet
+    staked: 0, // Mock for now
+    sentiment: p.score * 20,
+    color: '#8b5cf6' // Default purple
+  }))
 
   const filtered = category === 'all' 
-    ? PROJECTS 
-    : PROJECTS.filter(e => e.category === category)
+    ? uiProjects 
+    : uiProjects.filter(e => e.category === category) // Note: Store needs category field on Project
 
-  const maxMindshare = Math.max(...filtered.map(e => e.mindshare))
+  const maxMindshare = Math.max(...filtered.map(e => e.mindshare), 100)
   const totalMindshare = filtered.reduce((sum, e) => sum + e.mindshare, 0)
 
   return (
