@@ -89,7 +89,7 @@ export default function ReviewsPage() {
               <h1 className="text-2xl font-bold">{categories.find(c => c.value === selectedCategory)?.label}</h1>
               <p className="text-sm text-gray-400">k/{selectedCategory.split('/')[1]}</p>
             </div>
-            <button className="ml-auto px-6 py-2 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition">
+            <button className="ml-auto px-6 py-2 bg-kindred-primary text-white font-semibold rounded-full hover:bg-orange-600 transition">
               Join
             </button>
           </div>

@@ -128,7 +128,7 @@ export default function ProjectPage() {
           <div className="ml-auto flex gap-3">
              <Link 
               href="/review" 
-              className="bg-white text-black hover:bg-gray-200 px-6 py-2.5 rounded-lg font-semibold transition flex items-center gap-2"
+              className="bg-kindred-primary text-white hover:bg-orange-600 px-6 py-2.5 rounded-lg font-semibold transition flex items-center gap-2"
             >
               <span>Write Review</span>
             </Link>

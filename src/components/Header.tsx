@@ -70,7 +70,7 @@ export function Header() {
         <div className="flex items-center gap-3">
           <Link 
             href="/review"
-            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-50 text-black text-[13px] font-medium hover:bg-gray-200 transition-colors"
+            className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-kindred-primary text-white text-[13px] font-medium hover:bg-orange-600 transition-colors"
           >
             <SquarePen className="w-4 h-4" />
             <span>Post</span>
