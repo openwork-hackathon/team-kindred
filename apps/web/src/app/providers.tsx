@@ -47,7 +47,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
           loginMethods: ['email', 'wallet', 'google', 'twitter'],
           embeddedWallets: {
-            createOnLogin: 'users-without-wallets',
+            ethereum: {
+              createOnLogin: 'users-without-wallets',
+            },
           },
         }}
       >
