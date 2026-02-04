@@ -13,25 +13,14 @@ import { analyzeProject, AnalysisResult } from '@/app/actions/analyze'
 import { Sparkles } from 'lucide-react'
 
 // Initial loading state mock
-const LOADING_PROJECT: Project = {
+const LOADING_PROJECT: any = { // Using any temporarily to bypass strict typing during transition
   id: 'loading',
   name: 'Analyzing...',
-  ticker: '...',
-  category: 'k/ai' as any, // Temporary loading state category
-  color: '#6b6b70',
-  rank: 0,
-  mindshare: 0,
-  mindshareChange: 0,
-  staked: 0,
-  sentiment: 50,
-  reviewsCount: 0,
-  price: '...',
-  volume24h: '...',
-  marketCap: '...',
+  category: 'k/research',
   aiVerdict: 'neutral',
   aiScore: 0,
-  aiSummary: 'Gathering real-time data from web sources... (Simulated)',
-  keyPoints: ['Scanning social sentiment...', 'Analyzing on-chain metrics...', 'Verifying team updates...']
+  aiSummary: 'Calling Ma\'at for deep verification... (Checking On-Chain Data)',
+  keyPoints: ['Verifying Contract Safety...', 'Scanning Social Signals...', 'Auditing Team Background...']
 }
 
 export default function ProjectPage() {
@@ -40,7 +29,7 @@ export default function ProjectPage() {
   const idRaw = Array.isArray(params.id) ? params.id[0] : params.id
   const projectId = idRaw.toLowerCase()
 
-  const [projectData, setProjectData] = useState<Project | null>(null)
+  const [projectData, setProjectData] = useState<any>(null) // Relaxed type for hybrid data
   
   useEffect(() => {
     // Check if we have static mock data first
@@ -49,23 +38,30 @@ export default function ProjectPage() {
     if (staticData) {
       setProjectData(staticData)
     } else {
-      // Trigger "Live" Analysis
+      // Trigger "Ma'at" Analysis
       setProjectData(LOADING_PROJECT)
       analyzeProject(projectId).then((result) => {
         setProjectData({
           ...LOADING_PROJECT,
           id: projectId,
           name: result.name,
-          ticker: result.name.toUpperCase().slice(0, 4), // Simple fallback
-          category: result.category as any,
-          price: result.price || '-',
-          marketCap: result.marketCap || '-',
-          volume24h: result.volume24h || '-',
-          aiVerdict: result.aiVerdict,
-          aiScore: result.aiScore,
-          aiSummary: result.aiSummary,
-          keyPoints: result.keyPoints,
-          color: '#8B5CF6', // Default AI color
+          ticker: result.tokenSymbol || result.name.substring(0, 4).toUpperCase(),
+          category: `k/${result.type.toLowerCase()}`,
+          price: result.tokenPrice || '-',
+          marketCap: result.tvl || '-', // Using TVL as primary metric if MC missing
+          volume24h: '-',
+          
+          // Ma'at Specific Fields
+          aiVerdict: result.status === 'VERIFIED' ? 'bullish' : result.status === 'RISKY' ? 'bearish' : 'neutral',
+          aiScore: result.score * 20, // Map 0-5 to 0-100
+          aiSummary: result.summary,
+          keyPoints: result.features,
+          
+          // New Deep Data
+          riskWarnings: result.warnings,
+          audits: result.audits,
+          investors: result.investors,
+          maAtStatus: result.status, // Preserve original status
         })
       })
     }
@@ -84,9 +80,9 @@ export default function ProjectPage() {
         <div className="max-w-7xl mx-auto px-4 h-full flex items-end pb-8 relative z-10">
           <div className="flex items-center gap-6">
             <div className="w-24 h-24 bg-[#111113] border-4 border-[#0a0a0b] rounded-2xl flex items-center justify-center text-4xl shadow-2xl relative overflow-hidden">
-               {/* Gemini Glow Effect for new analysis */}
+               {/* Ma'at Glow Effect */}
                {data.id === 'loading' && (
-                 <div className="absolute inset-0 bg-blue-500/20 animate-pulse" />
+                 <div className="absolute inset-0 bg-yellow-500/20 animate-pulse" />
                )}
                {data.name[0]?.toUpperCase() || '?'}
             </div>
@@ -95,9 +91,13 @@ export default function ProjectPage() {
                 <h1 className="text-4xl font-bold text-white flex items-center gap-3">
                   {data.name}
                   {data === projectData && !PROJECTS.find(p => p.id === projectId) && data.id !== 'loading' && (
-                    <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-medium flex items-center gap-1">
+                    <span className={`px-2 py-0.5 rounded-full border text-xs font-medium flex items-center gap-1 ${
+                      data.maAtStatus === 'VERIFIED' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+                      data.maAtStatus === 'RISKY' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+                      'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+                    }`}>
                       <Sparkles className="w-3 h-3" />
-                      Gemini Live
+                      Ma'at Verified: {data.maAtStatus}
                     </span>
                   )}
                 </h1>
@@ -138,6 +138,40 @@ export default function ProjectPage() {
             summary={data.aiSummary}
             keyPoints={data.keyPoints}
           />
+
+          {/* New Ma'at Auditor Section */}
+          {(data.riskWarnings?.length > 0 || data.audits?.length > 0) && (
+            <div className="mb-6 p-4 rounded-xl bg-[#1a1a1d] border border-yellow-500/20">
+              <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
+                ⚠️ Ma'at Risk Analysis
+              </h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                 {data.riskWarnings?.length > 0 && (
+                   <div>
+                     <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Warnings</h4>
+                     <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
+                       {data.riskWarnings.map((w: string, i: number) => (
+                         <li key={i}>{w}</li>
+                       ))}
+                     </ul>
+                   </div>
+                 )}
+                 {data.audits?.length > 0 && (
+                   <div>
+                     <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Security Audits</h4>
+                     <ul className="space-y-2">
+                       {data.audits.map((a: any, i: number) => (
+                         <li key={i} className="flex items-center justify-between text-sm bg-black/20 p-2 rounded">
+                           <span className="text-green-400 font-medium">{a.auditor}</span>
+                           <span className="text-gray-500 text-xs">{a.date || 'Verified'}</span>
+                         </li>
+                       ))}
+                     </ul>
+                   </div>
+                 )}
+              </div>
+            </div>
+          )}
 
           {/* Discussion / Reviews */}
           <div className="mb-6 flex items-center justify-between">
