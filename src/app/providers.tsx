@@ -34,8 +34,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     </WagmiProvider>
   )
 
-  // Only wrap with Privy if App ID is configured
-  if (PRIVY_APP_ID && PRIVY_APP_ID.startsWith('cl')) {
+  // Only wrap with Privy if App ID is configured (supports both 'cl' and 'cm' prefixes)
+  if (PRIVY_APP_ID && (PRIVY_APP_ID.startsWith('cl') || PRIVY_APP_ID.startsWith('cm'))) {
     return (
       <PrivyProvider
         appId={PRIVY_APP_ID}
@@ -47,7 +47,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
           loginMethods: ['email', 'wallet', 'google', 'twitter'],
           embeddedWallets: {
-            createOnLogin: 'users-without-wallets',
+            ethereum: {
+              createOnLogin: 'users-without-wallets',
+            },
           },
         }}
       >
