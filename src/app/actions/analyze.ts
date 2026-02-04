@@ -1,114 +1,130 @@
 'use server'
 
-import { GoogleGenAI } from '@google/genai'
-import { z } from 'zod'
+import { GoogleGenerativeAI } from "@google/generative-ai"
 
-// Initialize Gemini Client
-const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
-const ai = new GoogleGenAI({ apiKey })
+// Initialize Google GenAI with the API Key
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
 
-// Ma'at Analysis Schema (Robust Web3 Verification)
-const AnalysisSchema = z.object({
-  name: z.string().describe('Project Name'),
-  type: z.enum(['DEX', 'DeFi', 'NFT', 'Infrastructure', 'Mobile', 'AI', 'Meme', 'Other']).describe('Project Category'),
-  chain: z.array(z.string()).describe('Supported Blockchains'),
-  score: z.number().min(0).max(5).describe('Trust Score (0.0-5.0)'),
-  status: z.enum(['VERIFIED', 'UNSTABLE', 'RISKY']).describe('Verification Status'),
-  summary: z.string().describe('2-3 sentence summary in Traditional Chinese (繁體中文)'),
-  tvl: z.string().optional().describe('Total Value Locked (e.g. $500M)'),
-  tokenSymbol: z.string().optional(),
-  tokenPrice: z.string().optional(),
-  investors: z.array(z.string()).optional().describe('Key Investors (e.g. a16z, Binance Labs)'),
-  features: z.array(z.string()).describe('Key Features in Traditional Chinese'),
-  warnings: z.array(z.string()).describe('Risk Warnings in Traditional Chinese'),
-  audits: z.array(z.object({
-    auditor: z.string(),
-    date: z.string().optional()
-  })).optional().describe('Security Audits'),
-  recentNews: z.array(z.object({
-    title: z.string(),
-    date: z.string().optional()
-  })).optional()
-})
+export interface Web3ProjectResult {
+  name: string
+  type: 'DEX' | 'DeFi' | 'NFT' | 'Infrastructure' | 'Mobile' | 'AI' | 'Meme' | 'Other'
+  chain: string[]
+  score: number
+  status: 'VERIFIED' | 'UNSTABLE' | 'RISKY' // Ma'at Status
+  summary: string
+  tvl?: string
+  website?: string
+  twitter?: string
+  github?: string
+  tokenSymbol?: string
+  tokenPrice?: string
+  launchDate?: string
+  investors?: string[]
+  features: string[]
+  warnings: string[]
+  audits?: { auditor: string; date?: string }[]
+  recentNews?: { title: string; date?: string }[]
+}
 
-export type AnalysisResult = z.infer<typeof AnalysisSchema>
-
-export async function analyzeProject(query: string): Promise<AnalysisResult> {
-  console.log(`[Ma'at] Analyzing: ${query} with Gemini 3 Flash...`)
-
+export async function analyzeProject(query: string): Promise<Web3ProjectResult> {
   try {
-    const prompt = `Search for comprehensive information about the Web3/DeFi project: "${query}".
+    const isUrl = /^https?:\/\//i.test(query.trim())
     
-    TASK: Use Google Search to find the LATEST data.
-    1. Look for TVL (Total Value Locked) on DeFiLlama.
-    2. Check for Security Audits (CertiK, Paladin, etc.).
-    3. Identify Investors (Crunchbase, CryptoRank).
-    4. Scan for bad news, hacks, or risk warnings.`
+    const prompt = isUrl
+      ? `Analyze this Web3/DeFi project from the URL: "${query}"\n\nExtract the project name and research comprehensive data about it.`
+      : `Search for comprehensive information about the Web3/DeFi project: "${query}"`
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp', 
-      contents: prompt,
-      config: {
-        systemInstruction: `You are Ma'at, the Egyptian goddess of Truth, now analyzing Web3.
-
-TASK: Research and verify Web3/DeFi/NFT projects.
-
-CRITICAL RULES:
-1. NO HALLUCINATIONS: Only report data you actually find.
-2. VERIFY THE PROJECT: Make sure the project matches the query.
-3. OUTPUT: JSON format ONLY. All text (summary, features) in Traditional Chinese (繁體中文).
-
-RETURN JSON FORMAT:
-{
-  "name": "Project Name",
-  "type": "DEX",
-  "chain": ["Ethereum"],
-  "score": 4.5,
-  "status": "VERIFIED",
-  "summary": "Summary in Traditional Chinese.",
-  "tvl": "$500M",
-  "tokenSymbol": "TOKEN",
-  "tokenPrice": "$1.23",
-  "investors": ["a16z"],
-  "features": ["Feature 1", "Feature 2"],
-  "warnings": ["Warning 1"],
-  "audits": [{"auditor": "CertiK", "date": "2024"}],
-  "recentNews": [{"title": "News", "date": "2024"}]
-}`,
-        tools: [{ googleSearch: {} }] // Enable Google Search Grounding
-      }
+    // Use Gemini 3.0 Flash Preview for fastest, grounded results
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-3-flash-preview", 
+      tools: [{ googleSearch: {} } as any] 
     })
 
-    const text = response.text || ''
-    console.log("[Ma'at] Response:", text.substring(0, 100) + "...")
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      systemInstruction: `You are Ma'at, the Egyptian goddess of Truth, now analyzing Web3 and blockchain projects.
 
-    // Extract JSON
+TASK: Research and verify Web3/DeFi/NFT projects from multiple sources (official website, DeFiLlama, CoinGecko, Twitter, news articles).
+
+CRITICAL RULES:
+1. NO HALLUCINATIONS: Only report data you actually find. If you cannot find real data, return status "UNSTABLE".
+2. VERIFY THE PROJECT: Make sure the project matches the query. Check official sources.
+3. Check for security audits, team background, and TVL data.
+4. Look for any red flags: rug pulls, hacks, or suspicious activity.
+5. RESPONSE LANGUAGE: All text fields (summary, features, warnings, etc.) MUST be in Traditional Chinese (繁體中文).
+
+RETURN JSON FORMAT ONLY:
+{
+  "name": "Project Name",
+  "type": "DEX|DeFi|NFT|Infrastructure|Other",
+  "chain": ["BNB Chain", "Ethereum"],
+  "score": 0.0-5.0,
+  "status": "VERIFIED|UNSTABLE|RISKY",
+  "summary": "2-3 sentence summary of the project, its legitimacy, and key value proposition.",
+  "tvl": "$500M",
+  "website": "https://example.com",
+  "twitter": "@projecthandle",
+  "github": "https://github.com/org/repo",
+  "tokenSymbol": "TOKEN",
+  "tokenPrice": "$1.23",
+  "launchDate": "2023-01",
+  "investors": ["a16z", "Binance Labs"],
+  "features": ["永續合約交易", "最高100x槓桿", "低手續費"],
+  "warnings": ["過去曾遭駭客攻擊", "團隊匿名"],
+  "audits": [
+    {"auditor": "CertiK", "date": "2024-01"},
+    {"auditor": "SlowMist", "date": "2023-12"}
+  ],
+  "recentNews": [
+    {"title": "Project raises $10M Series A", "date": "2024-01"}
+  ]
+}
+
+SCORING GUIDE:
+- 4.0-5.0 (VERIFIED): Well-established, audited, high TVL, known team, no major incidents
+- 2.5-3.9 (UNSTABLE): Some concerns, limited audits, newer project, or anonymous team
+- 0-2.4 (RISKY): Red flags found, hack history, rug pull warnings, or unverified
+
+IMPORTANT:
+- If the project cannot be found or verified, set status to "UNSTABLE" and explain in summary.
+- Focus on TRUTH and RISK verification.`
+    })
+
+    console.log('Ma\'at Raw Response:', result.response.text())
+
+    const text = result.response.text() || ''
+    // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      throw new Error('No JSON found in response')
+      console.error('No JSON found in response:', text)
+      throw new Error('No JSON found')
     }
 
     const data = JSON.parse(jsonMatch[0])
+    
+    const score = data.score || 0
+    const status = data.status || (score >= 4.0 ? 'VERIFIED' : score < 2.5 ? 'RISKY' : 'UNSTABLE')
 
-    // Validate/Map to AnalysisResult
-    // Ensure all required fields exist or have defaults
     return {
       name: data.name || query,
       type: data.type || 'Other',
       chain: data.chain || [],
-      score: typeof data.score === 'number' ? data.score : 0,
-      status: data.status || 'UNSTABLE',
-      summary: data.summary || '暫無詳細分析',
-      tvl: data.tvl || undefined,
-      tokenSymbol: data.tokenSymbol || undefined,
-      tokenPrice: data.tokenPrice || undefined,
+      score,
+      status: status,
+      summary: data.summary || '無法完成分析',
+      tvl: data.tvl,
+      website: data.website,
+      twitter: data.twitter,
+      github: data.github,
+      tokenSymbol: data.tokenSymbol,
+      tokenPrice: data.tokenPrice,
+      launchDate: data.launchDate,
       investors: data.investors || [],
       features: data.features || [],
       warnings: data.warnings || [],
       audits: data.audits || [],
-      recentNews: data.recentNews || []
-    } as AnalysisResult
-
+      recentNews: data.recentNews || [],
+    }
   } catch (error) {
     console.error('Ma\'at Verification Failed:', error)
     return {
@@ -117,9 +133,9 @@ RETURN JSON FORMAT:
       chain: [],
       score: 0,
       status: 'UNSTABLE',
-      summary: '系統暫時無法完成深度分析 (連線逾時中斷)',
-      features: ['請稍後重試'],
-      warnings: ['Ma\'at 節點忙碌中'],
-    } as AnalysisResult
+      summary: '系統無法連線至 Ma\'at 節點 (Search Service Unavailable)',
+      features: ['請檢查 API Key 或網路連線'],
+      warnings: ['分析服務暫時無法使用'],
+    } as Web3ProjectResult
   }
 }

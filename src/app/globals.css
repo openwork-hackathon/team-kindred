@@ -6,25 +6,25 @@
 
 :root {
   /* Colors */
-  --bg-primary: #0a0a0b;
-  --bg-secondary: #111113;
-  --bg-tertiary: #0d0d0e;
-  --border-color: #1f1f23;
-  --border-light: #2a2a2e;
+  --bg-primary: #1a0e2e;
+  --bg-secondary: #24123d;
+  --bg-tertiary: #2d164d;
+  --border-color: #2d164d;
+  --border-light: #572f61;
 
-  --text-primary: #ffffff;
+  --text-primary: #d9d4e8;
   --text-secondary: #adadb0;
   --text-muted: #6b6b70;
   --text-dark: #8b8b90;
 
-  --accent-purple: #a855f7;
-  --accent-purple-dark: #7c3aed;
+  --accent-purple: #d9d4e8;
+  --accent-purple-dark: #572f61;
   --accent-green: #22c55e;
   --accent-orange: #ff8a4c;
   --accent-red: #ef4444;
 
   /* Gradients */
-  --gradient-purple: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  --gradient-purple: linear-gradient(135deg, #572f61 0%, #2d164d 100%);
 }
 
 body {
@@ -42,15 +42,21 @@ body {
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .animate-in {
     animation: fadeInUp 0.6s ease forwards;
     opacity: 0;
   }
-  
-  .delay-1 { animation-delay: 0.1s; }
-  .delay-2 { animation-delay: 0.2s; }
-  .delay-3 { animation-delay: 0.3s; }
+
+  .delay-1 {
+    animation-delay: 0.1s;
+  }
+  .delay-2 {
+    animation-delay: 0.2s;
+  }
+  .delay-3 {
+    animation-delay: 0.3s;
+  }
 }
 
 @keyframes fadeInUp {

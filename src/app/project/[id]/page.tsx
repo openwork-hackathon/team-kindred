@@ -6,14 +6,15 @@ import { AISummaryCard } from '@/components/project/AISummaryCard'
 import { ReviewCard } from '@/components/reviews/ReviewCard'
 import { CommunityInfo } from '@/components/project/CommunityInfo'
 
-import { PROJECTS, REVIEWS, Project } from '@/data/mock'
+import { REVIEWS } from '@/data/mock'
+import { useStore, Project } from '@/lib/store'
 
 import { useState, useEffect } from 'react'
-import { analyzeProject, AnalysisResult } from '@/app/actions/analyze'
-import { Sparkles } from 'lucide-react'
+import { analyzeProject } from '@/app/actions/analyze'
+import { Sparkles, Users } from 'lucide-react'
 
 // Initial loading state mock
-const LOADING_PROJECT: any = { // Using any temporarily to bypass strict typing during transition
+const LOADING_PROJECT: any = { 
   id: 'loading',
   name: 'Analyzing...',
   category: 'k/research',
@@ -25,52 +26,87 @@ const LOADING_PROJECT: any = { // Using any temporarily to bypass strict typing 
 
 export default function ProjectPage() {
   const params = useParams()
-  // ID from URL (e.g. 'hyperliquid')
   const idRaw = Array.isArray(params.id) ? params.id[0] : params.id
   const projectId = idRaw.toLowerCase()
 
-  const [projectData, setProjectData] = useState<any>(null) // Relaxed type for hybrid data
+  // Store Hooks
+  const storedProject = useStore(state => state.getProject(projectId))
+  const addProject = useStore(state => state.addProject)
+  const joinCommunity = useStore(state => state.joinCommunity)
+  const leaveCommunity = useStore(state => state.leaveCommunity)
+  const communities = useStore(state => state.communities)
+  const isJoined = useStore(state => state.joinedCommunityIds.includes(projectId))
+
+  const [projectData, setProjectData] = useState<any>(null)
   
   useEffect(() => {
-    // Check if we have static mock data first
-    const staticData = PROJECTS.find(p => p.id === projectId)
-    
-    if (staticData) {
-      setProjectData(staticData)
+    if (storedProject) {
+      // Use verified data from store if available
+      setProjectData({
+         ...storedProject,
+         // Map store data back to UI format expected by this page's legacy types
+         aiVerdict: storedProject.score >= 4 ? 'bullish' : storedProject.score <= 2.5 ? 'bearish' : 'neutral',
+         aiScore: storedProject.score * 20,
+         keyPoints: [], // storedProject in store.ts might need expanding to hold these if we want to persist details
+         // For now, re-fetching deep details or assuming lightweight store
+      })
+      // If store data is lightweight, we might still want to trigger deep analysis if missing details?
+      // For now, trust store.
     } else {
       // Trigger "Ma'at" Analysis
       setProjectData(LOADING_PROJECT)
       analyzeProject(projectId).then((result) => {
-        setProjectData({
+        const fullData = {
           ...LOADING_PROJECT,
           id: projectId,
           name: result.name,
           ticker: result.tokenSymbol || result.name.substring(0, 4).toUpperCase(),
           category: `k/${result.type.toLowerCase()}`,
           price: result.tokenPrice || '-',
-          marketCap: result.tvl || '-', // Using TVL as primary metric if MC missing
+          marketCap: result.tvl || '-',
           volume24h: '-',
           
-          // Ma'at Specific Fields
           aiVerdict: result.status === 'VERIFIED' ? 'bullish' : result.status === 'RISKY' ? 'bearish' : 'neutral',
-          aiScore: result.score * 20, // Map 0-5 to 0-100
+          aiScore: result.score * 20,
           aiSummary: result.summary,
           keyPoints: result.features,
           
-          // New Deep Data
           riskWarnings: result.warnings,
           audits: result.audits,
           investors: result.investors,
-          maAtStatus: result.status, // Preserve original status
+          maAtStatus: result.status,
+        }
+        
+        setProjectData(fullData)
+
+        // AUTO ADD: Persist verified project to store
+        // We map the analysis result to our simple Store Project type
+        addProject({
+          id: projectId,
+          name: result.name,
+          ticker: result.tokenSymbol || "UNK",
+          category: result.type,
+          score: result.score,
+          tvl: result.tvl,
+          reviewsCount: 0,
+          logo: undefined
         })
       })
     }
-  }, [projectId])
+  }, [projectId, storedProject, addProject])
 
   const data = projectData || LOADING_PROJECT
   
   // Filter reviews matching this project ID
   const relevantReviews = REVIEWS.filter(r => r.projectId === projectId)
+
+  const handleJoin = () => {
+    if (isJoined) {
+      leaveCommunity(projectId)
+    } else {
+      joinCommunity(projectId)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#0a0a0b] text-white">
@@ -90,7 +126,7 @@ export default function ProjectPage() {
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="text-4xl font-bold text-white flex items-center gap-3">
                   {data.name}
-                  {data === projectData && !PROJECTS.find(p => p.id === projectId) && data.id !== 'loading' && (
+                  {data === projectData && !storedProject && data.id !== 'loading' && (
                     <span className={`px-2 py-0.5 rounded-full border text-xs font-medium flex items-center gap-1 ${
                       data.maAtStatus === 'VERIFIED' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
                       data.maAtStatus === 'RISKY' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
@@ -119,8 +155,15 @@ export default function ProjectPage() {
             >
               <span>Write Review</span>
             </Link>
-            <button className="bg-[#1a1a1d] hover:bg-[#2a2a2e] border border-[#2a2a2e] text-white px-6 py-2.5 rounded-lg font-medium transition">
-              Join Community
+            <button 
+              onClick={handleJoin}
+              className={`px-6 py-2.5 rounded-lg font-medium transition flex items-center gap-2 border ${
+                isJoined 
+                  ? 'bg-transparent border-[#2a2a2e] text-white hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400' 
+                  : 'bg-[#1a1a1d] border-[#2a2a2e] text-white hover:bg-[#2a2a2e]'
+              }`}
+            >
+              {isJoined ? 'Joined' : 'Join Community'}
             </button>
           </div>
         </div>
