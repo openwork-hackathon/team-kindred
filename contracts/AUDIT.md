@@ -1,8 +1,8 @@
 # Kindred Contract Security Audit
 
 **Auditor:** Patrick (Bounty Hunter Agent)  
-**Date:** 2026-02-04 20:45 PST  
-**Commit:** Latest  
+**Date:** 2026-02-04 21:45 PST  
+**Commit:** a5a5b33  
 **Status:** 🟡 Medium Risk - Needs Improvements
 
 ---
@@ -15,7 +15,7 @@
 | 🟠 High | 0 | ✅ None |
 | 🟡 Medium | 3 | ⚠️ Needs Fix |
 | 🟢 Low | 4 | 💡 Optimize |
-| ℹ️ Info | 2 | 📝 Consider |
+| ℹ️ Info | 5 | 📝 Consider |
 
 **Overall:** Codebase is functional but needs improvements before mainnet deployment.
 
@@ -257,7 +257,92 @@ mapping(address => UserData) public userData;
 
 ## ℹ️ Informational
 
-### [I-1] Consider Using OpenZeppelin AccessControl Instead of Simple Ownable
+### [I-1] Pragma Version Inconsistency (Slither)
+
+**Impact:** OpenZeppelin uses ^0.8.20, contracts use ^0.8.24
+
+**Description:**
+```
+- OpenZeppelin Ownable/Context: ^0.8.20
+- KindredHook/ReputationOracle: ^0.8.24
+```
+
+**Recommendation:**
+Update OpenZeppelin to v5.x which uses ^0.8.20+ or lock contracts to ^0.8.20:
+```solidity
+pragma solidity 0.8.24; // Lock to specific version
+```
+
+**Status:** ℹ️ Informational (works fine, just inconsistent)
+
+---
+
+### [I-2] Known Solidity Bugs in ^0.8.20 (Slither)
+
+**Impact:** OpenZeppelin dependencies use version with known bugs
+
+**Description:**
+^0.8.20 contains known issues:
+- VerbatimInvalidDeduplication
+- FullInlinerNonExpressionSplitArgumentEvaluationOrder
+- MissingSideEffectsOnSelectorAccess
+
+**Recommendation:**
+```bash
+# Update OpenZeppelin to latest
+forge update openzeppelin-contracts
+```
+
+Or use specific 0.8.24+ for all contracts.
+
+**Status:** ℹ️ Low risk (bugs don't affect typical usage)
+
+---
+
+### [I-3] Missing Interface Inheritance (Slither)
+
+**Impact:** ReputationOracle doesn't formally implement IReputationOracle
+
+**Description:**
+KindredHook defines `IReputationOracle` interface but `ReputationOracle` doesn't inherit it.
+
+**Recommendation:**
+```solidity
+// In ReputationOracle.sol
+import "./KindredHook.sol"; // or extract interface to separate file
+
+contract ReputationOracle is Ownable, IReputationOracle {
+    // ... implementation
+}
+```
+
+**Status:** ℹ️ Works fine, just missing explicit declaration
+
+---
+
+### [I-4] Naming Convention Violations (Slither)
+
+**Impact:** Parameter names don't follow Solidity style guide
+
+**Description:**
+```solidity
+// ❌ Current
+function batchSetScores(address[] calldata accounts, uint256[] calldata _scores)
+function setBlocked(address account, bool _blocked)
+
+// ✅ Should be
+function batchSetScores(address[] calldata accounts, uint256[] calldata newScores)
+function setBlocked(address account, bool isBlocked)
+```
+
+**Recommendation:**
+Remove leading underscores from parameters (reserved for internal/private).
+
+**Status:** ℹ️ Style issue, no functional impact
+
+---
+
+### [I-5] Consider Using OpenZeppelin AccessControl Instead of Simple Ownable
 
 **Impact:** Better role management for updaters
 
@@ -284,7 +369,7 @@ contract ReputationOracle is AccessControl {
 
 ---
 
-### [I-2] Add NatSpec Documentation
+### [I-6] Add NatSpec Documentation
 
 **Impact:** Better developer experience
 
@@ -370,6 +455,7 @@ Running tests...
 
 | Date | Severity | Description |
 |------|----------|-------------|
+| 2026-02-04 21:45 | ℹ️ | Slither analysis added: 3 new informational findings |
 | 2026-02-04 20:45 | - | Initial audit completed |
 
 ---

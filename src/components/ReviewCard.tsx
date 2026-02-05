@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 interface ReviewCardProps {
   review: {
     id: string
@@ -29,8 +31,55 @@ const CATEGORY_ICONS: Record<string, string> = {
 }
 
 export function ReviewCard({ review }: ReviewCardProps) {
+  const [upvotes, setUpvotes] = useState(review.upvotes)
+  const [downvotes, setDownvotes] = useState(review.downvotes)
+  const [voting, setVoting] = useState(false)
+  const [voted, setVoted] = useState<'up' | 'down' | null>(null)
+
   const stakeInEth = Number(review.stakeAmount) / 1e18
   const truncateAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`
+
+  const handleVote = async (direction: 'up' | 'down') => {
+    if (voting || voted) return
+
+    setVoting(true)
+    
+    // Optimistic update
+    if (direction === 'up') {
+      setUpvotes(prev => prev + 1)
+    } else {
+      setDownvotes(prev => prev + 1)
+    }
+    setVoted(direction)
+
+    try {
+      const response = await fetch(`/api/reviews/${review.id}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Vote failed')
+      }
+
+      const data = await response.json()
+      setUpvotes(data.upvotes)
+      setDownvotes(data.downvotes)
+    } catch (error) {
+      console.error('Vote error:', error)
+      // Rollback optimistic update
+      if (direction === 'up') {
+        setUpvotes(prev => prev - 1)
+      } else {
+        setDownvotes(prev => prev - 1)
+      }
+      setVoted(null)
+      alert('Failed to vote. Please try again.')
+    } finally {
+      setVoting(false)
+    }
+  }
   
   return (
     <div className="bg-kindred-dark border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition">
@@ -74,13 +123,29 @@ export function ReviewCard({ review }: ReviewCardProps) {
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-800">
         <div className="flex items-center gap-4">
-          <button className="flex items-center gap-1 text-gray-400 hover:text-green-400 transition">
+          <button 
+            onClick={() => handleVote('up')}
+            disabled={voting || voted === 'up'}
+            className={`flex items-center gap-1 transition ${
+              voted === 'up' 
+                ? 'text-green-400' 
+                : 'text-gray-400 hover:text-green-400'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
             <span>👍</span>
-            <span className="text-sm">{review.upvotes}</span>
+            <span className="text-sm font-medium">{upvotes}</span>
           </button>
-          <button className="flex items-center gap-1 text-gray-400 hover:text-red-400 transition">
+          <button 
+            onClick={() => handleVote('down')}
+            disabled={voting || voted === 'down'}
+            className={`flex items-center gap-1 transition ${
+              voted === 'down' 
+                ? 'text-red-400' 
+                : 'text-gray-400 hover:text-red-400'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
             <span>👎</span>
-            <span className="text-sm">{review.downvotes}</span>
+            <span className="text-sm font-medium">{downvotes}</span>
           </button>
         </div>
         {stakeInEth > 0 && (
