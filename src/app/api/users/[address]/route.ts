@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
 // Types
 interface UserReputation {
@@ -11,6 +12,7 @@ interface UserReputation {
   totalLost: string
   winRate: number
   reputationScore: number
+  feeTier: string
   level: 'newcomer' | 'contributor' | 'trusted' | 'expert' | 'authority'
   badges: string[]
   joinedAt: string
@@ -39,24 +41,6 @@ function calculateBadges(user: Partial<UserReputation>): string[] {
   return badges
 }
 
-// Mock user data (replace with DB lookup)
-const users: Map<string, UserReputation> = new Map([
-  ['0xabcdef1234567890abcdef1234567890abcdef12', {
-    address: '0xabcdef1234567890abcdef1234567890abcdef12',
-    displayName: 'DeFiChad.eth',
-    totalReviews: 45,
-    totalUpvotes: 320,
-    totalStaked: '50000000000000000000',
-    totalWon: '35000000000000000000',
-    totalLost: '15000000000000000000',
-    winRate: 70,
-    reputationScore: 2450,
-    level: 'trusted',
-    badges: ['Active Reviewer', 'Predictor'],
-    joinedAt: '2024-06-15T00:00:00Z',
-  }],
-])
-
 // GET /api/users/[address]
 export async function GET(
   request: NextRequest,
@@ -71,30 +55,62 @@ export async function GET(
 
   const normalizedAddress = address.toLowerCase()
   
-  // Check if user exists
-  let user = users.get(normalizedAddress)
-  
-  if (!user) {
-    // Return default user for new addresses
-    user = {
-      address: normalizedAddress,
-      displayName: null,
-      totalReviews: 0,
-      totalUpvotes: 0,
-      totalStaked: '0',
-      totalWon: '0',
-      totalLost: '0',
-      winRate: 0,
-      reputationScore: 0,
-      level: 'newcomer',
-      badges: [],
-      joinedAt: new Date().toISOString(),
+  try {
+    let user = await prisma.user.findUnique({
+      where: { address: normalizedAddress },
+    })
+
+    if (!user) {
+      // Return default user for new addresses
+      return NextResponse.json({
+        address: normalizedAddress,
+        displayName: null,
+        totalReviews: 0,
+        totalUpvotes: 0,
+        totalStaked: '0',
+        totalWon: '0',
+        totalLost: '0',
+        winRate: 0,
+        reputationScore: 0,
+        feeTier: 'normal',
+        level: 'newcomer',
+        badges: [],
+        joinedAt: new Date().toISOString(),
+      })
     }
+
+    // Calculate win rate
+    const totalWon = BigInt(user.totalWon)
+    const totalLost = BigInt(user.totalLost)
+    const totalSettled = totalWon + totalLost
+    const winRate = totalSettled > 0 
+      ? Number((totalWon * BigInt(100)) / totalSettled)
+      : 0
+
+    const response: UserReputation = {
+      address: user.address,
+      displayName: user.displayName,
+      totalReviews: user.totalReviews,
+      totalUpvotes: user.totalUpvotes,
+      totalStaked: user.totalStaked,
+      totalWon: user.totalWon,
+      totalLost: user.totalLost,
+      winRate,
+      reputationScore: user.reputationScore,
+      feeTier: user.feeTier,
+      level: calculateLevel(user.reputationScore),
+      badges: calculateBadges({
+        totalReviews: user.totalReviews,
+        totalUpvotes: user.totalUpvotes,
+        totalStaked: user.totalStaked,
+        winRate,
+      }),
+      joinedAt: user.createdAt.toISOString(),
+    }
+
+    return NextResponse.json(response)
+  } catch (error) {
+    console.error('Error fetching user:', error)
+    return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 })
   }
-
-  // Recalculate derived fields
-  user.level = calculateLevel(user.reputationScore)
-  user.badges = calculateBadges(user)
-
-  return NextResponse.json(user)
 }
