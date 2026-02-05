@@ -11,6 +11,7 @@ contract ReputationOracle is Ownable {
     
     uint256 public constant MAX_SCORE = 1000;
     uint256 public constant DEFAULT_SCORE = 500;
+    uint256 public constant MAX_BATCH_SIZE = 50;
     
     event ScoreUpdated(address indexed account, uint256 oldScore, uint256 newScore, address indexed updater);
     event ProjectScoreUpdated(address indexed project, uint256 oldScore, uint256 newScore);
@@ -20,6 +21,7 @@ contract ReputationOracle is Ownable {
     error NotAuthorized();
     error ScoreTooHigh(uint256 score);
     error ZeroAddress();
+    error BatchTooLarge(uint256 size);
     
     modifier onlyUpdater() {
         if (!updaters[msg.sender] && msg.sender != owner()) revert NotAuthorized();
@@ -70,6 +72,7 @@ contract ReputationOracle is Ownable {
     
     function batchSetScores(address[] calldata accounts, uint256[] calldata _scores) external onlyUpdater {
         require(accounts.length == _scores.length, "Length mismatch");
+        if (accounts.length > MAX_BATCH_SIZE) revert BatchTooLarge(accounts.length);
         for (uint256 i = 0; i < accounts.length; i++) {
             if (accounts[i] == address(0)) revert ZeroAddress();
             if (_scores[i] > MAX_SCORE) revert ScoreTooHigh(_scores[i]);
