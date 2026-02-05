@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '@/lib/store'
 import { Coins, Loader2 } from 'lucide-react'
+import { VoteButtons } from './VoteButtons'
 
 interface Review {
   id: string
@@ -16,6 +17,7 @@ interface Review {
   upvotes: number
   downvotes: number
   createdAt: string
+  nftTokenId?: string // NFT token ID (if minted on-chain)
 }
 
 interface ReviewCardProps {
@@ -93,17 +95,31 @@ export function ReviewCard({ review }: ReviewCardProps) {
       {/* Footer / Action Bar */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-800 relative z-10">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={handleBuyShare}
-            disabled={isBuying}
-            className="flex items-center gap-1.5 text-gray-400 hover:text-green-400 transition group/buy"
-            title="Buy Share (Upvote)"
-          >
-            {isBuying ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>▲</span>}
-            <span className="text-sm font-bold group-hover/buy:text-green-400 transition-colors">
-              {isBuying ? 'Buying...' : `Buy Share (${review.upvotes || 0})`}
-            </span>
-          </button>
+          {/* On-chain voting (if nftTokenId exists) */}
+          {review.nftTokenId ? (
+            <VoteButtons
+              tokenId={BigInt(review.nftTokenId)}
+              currentUpvotes={review.upvotes}
+              currentDownvotes={review.downvotes}
+            />
+          ) : (
+            // Fallback to mock voting (for non-minted reviews)
+            <>
+              <button 
+                onClick={handleBuyShare}
+                disabled={isBuying}
+                className="flex items-center gap-1.5 text-gray-400 hover:text-green-400 transition group/buy"
+                title="Buy Share (Upvote)"
+              >
+                {isBuying ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>▲</span>}
+                <span className="text-sm font-bold group-hover/buy:text-green-400 transition-colors">
+                  {isBuying ? 'Buying...' : `${review.upvotes || 0}`}
+                </span>
+              </button>
+              
+              <span className="text-xs text-gray-600">(Mock - Deploy contracts to enable real voting)</span>
+            </>
+          )}
           
           <button className="flex items-center gap-1 text-gray-400 hover:text-blue-400 transition">
             <span>💬</span>
