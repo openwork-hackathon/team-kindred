@@ -1,4 +1,4 @@
-import { MindshareBoard } from '@/components/MindshareBoard'
+import { MindshareBoard } from '@/components/leaderboard/MindshareBoard'
 
 export default function LeaderboardPage() {
   return (
