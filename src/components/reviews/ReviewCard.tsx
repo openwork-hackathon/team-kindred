@@ -1,11 +1,25 @@
 import { useState } from 'react'
-import { Review } from '@/data/mock' // Keep type mock for now, or update to store type
 import { useStore } from '@/lib/store'
 import { Coins, Loader2 } from 'lucide-react'
 
-// Adapting to either Store Review or Mock Review structure
+interface Review {
+  id: string
+  targetAddress: string
+  targetName: string
+  reviewerAddress: string
+  rating: number
+  content: string
+  category: string
+  predictedRank: number | null
+  stakeAmount: string
+  photoUrls: string[]
+  upvotes: number
+  downvotes: number
+  createdAt: string
+}
+
 interface ReviewCardProps {
-  review: any 
+  review: Review
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -19,7 +33,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
   const [isBuying, setIsBuying] = useState(false)
   const buyReview = useStore(state => state.buyReview)
   
-  const stakeValue = review.stakedAmount ? Number(review.stakedAmount.toString().replace(/,/g, '')) : 0
+  const stakeValue = review.stakeAmount ? Number(review.stakeAmount.toString().replace(/,/g, '')) : 0
   const truncateAddress = (addr: string) => addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : 'Anon'
   
   const handleBuyShare = async () => {
@@ -36,7 +50,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
   return (
     <div className="bg-kindred-dark border border-gray-800 rounded-xl p-6 hover:border-kindred-primary/50 transition relative overflow-hidden group">
       {/* ERC404 Background Indicator */}
-      {review.isERC404 && (
+      {stakeValue > 0 && (
         <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition">
           <Coins className="w-24 h-24 text-kindred-primary" />
         </div>
@@ -46,12 +60,12 @@ export function ReviewCard({ review }: ReviewCardProps) {
       <div className="flex items-start justify-between mb-4 relative z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-kindred-primary to-purple-800 rounded-full flex items-center justify-center text-lg text-white font-bold">
-            {review.author?.slice(0, 2).toUpperCase() || 'AN'}
+            {review.reviewerAddress?.slice(0, 2).toUpperCase() || 'AN'}
           </div>
           <div>
-            <div className="font-mono text-sm text-[#d9d4e8]">{truncateAddress(review.author)}</div>
+            <div className="font-mono text-sm text-[#d9d4e8]">{truncateAddress(review.reviewerAddress)}</div>
             <div className="text-xs text-gray-500">
-              {review.timestamp ? new Date(review.timestamp).toLocaleDateString() : 'Just now'}
+              {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : 'Just now'}
             </div>
           </div>
         </div>
@@ -69,7 +83,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
         <span className="text-lg">{review.category ? CATEGORY_ICONS[review.category] : '📄'}</span>
         <span className="text-sm text-gray-400">Reviewing:</span>
         <code className="text-xs bg-gray-900 border border-gray-700 px-2 py-1 rounded font-mono capitalize text-purple-300">
-          {review.projectId || review.projectName}
+          {review.targetName}
         </code>
       </div>
 
@@ -93,16 +107,16 @@ export function ReviewCard({ review }: ReviewCardProps) {
           
           <button className="flex items-center gap-1 text-gray-400 hover:text-blue-400 transition">
             <span>💬</span>
-            <span className="text-sm">{review.comments || 0}</span>
+            <span className="text-sm">0</span>
           </button>
         </div>
 
         {/* Stake Badge */}
-        {(stakeValue > 0 || review.stakedAmount) && (
+        {stakeValue > 0 && (
           <div className="flex items-center gap-2">
              <div className="flex items-center gap-1.5 text-kindred-primary bg-purple-900/20 px-2 py-1 rounded border border-purple-500/20">
                  <Coins className="w-3.5 h-3.5" />
-                 <span className="text-xs font-semibold">{stakeValue || 50} $KIND Staked</span>
+                 <span className="text-xs font-semibold">{stakeValue} $KIND Staked</span>
              </div>
           </div>
         )}

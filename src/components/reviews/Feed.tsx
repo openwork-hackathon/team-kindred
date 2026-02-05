@@ -1,16 +1,48 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Flame, Clock, TrendingUp, Award, SlidersHorizontal } from 'lucide-react'
 import { ReviewCard } from '@/components/reviews/ReviewCard'
 
 type SortOption = 'hot' | 'new' | 'top' | 'rising'
 
-import { REVIEWS, Review } from '@/data/mock'
+interface Review {
+  id: string
+  targetAddress: string
+  targetName: string
+  reviewerAddress: string
+  rating: number
+  content: string
+  category: string
+  predictedRank: number | null
+  stakeAmount: string
+  photoUrls: string[]
+  upvotes: number
+  downvotes: number
+  createdAt: string
+}
 
 export function Feed() {
   const [sortBy, setSortBy] = useState<SortOption>('hot')
   const [showFilters, setShowFilters] = useState(false)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchReviews() {
+      try {
+        const res = await fetch(`/api/reviews?sort=${sortBy}`)
+        const data = await res.json()
+        setReviews(data.reviews || [])
+      } catch (error) {
+        console.error('Failed to fetch reviews:', error)
+        setReviews([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchReviews()
+  }, [sortBy])
 
   const sortOptions: { value: SortOption; label: string; icon: React.ReactNode }[] = [
     { value: 'hot', label: 'Hot', icon: <Flame className="w-4 h-4" /> },
@@ -18,25 +50,6 @@ export function Feed() {
     { value: 'top', label: 'Top', icon: <TrendingUp className="w-4 h-4" /> },
     { value: 'rising', label: 'Rising', icon: <Award className="w-4 h-4" /> },
   ]
-
-  const sortedPosts = [...REVIEWS].sort((a, b) => {
-    switch (sortBy) {
-      case 'hot':
-        // Hot = upvotes * recency factor
-        const aHot = a.upvotes * (1 / (Date.now() - new Date(a.timestamp).getTime()))
-        const bHot = b.upvotes * (1 / (Date.now() - new Date(b.timestamp).getTime()))
-        return bHot - aHot
-      case 'new':
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      case 'top':
-        return b.upvotes - a.upvotes
-      case 'rising':
-        // Rising = high engagement rate
-        return (b.upvotes + b.comments * 5) - (a.upvotes + a.comments * 5)
-      default:
-        return 0
-    }
-  })
 
   return (
     <div className="space-y-4">
@@ -84,9 +97,15 @@ export function Feed() {
 
       {/* Posts */}
       <div className="space-y-3">
-        {sortedPosts.map((post) => (
-          <ReviewCard key={post.id} review={post} />
-        ))}
+        {loading ? (
+          <div className="text-center py-8 text-[#6b6b70]">Loading reviews...</div>
+        ) : reviews.length === 0 ? (
+          <div className="text-center py-8 text-[#6b6b70]">No reviews yet. Be the first!</div>
+        ) : (
+          reviews.map((review) => (
+            <ReviewCard key={review.id} review={review} />
+          ))
+        )}
       </div>
 
       {/* Load More */}

@@ -5,8 +5,17 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { TrendingUp, TrendingDown, Minus, ChevronDown, Flame, Clock, Award, BarChart3, ArrowUpRight } from 'lucide-react'
 
-import { CATEGORIES, Category } from '@/data/mock'
 import { useStore } from '@/lib/store'
+
+type Category = 'all' | 'k/defi' | 'k/perp-dex' | 'k/ai' | 'k/memecoin'
+
+const CATEGORIES = [
+  { id: 'all' as Category, label: 'All', icon: BarChart3 },
+  { id: 'k/defi' as Category, label: 'DeFi', icon: Award },
+  { id: 'k/perp-dex' as Category, label: 'Perp DEX', icon: TrendingUp },
+  { id: 'k/ai' as Category, label: 'AI Agents', icon: Flame },
+  { id: 'k/memecoin' as Category, label: 'Memecoins', icon: Clock },
+]
 
 function formatNumber(n: number): string {
   if (n === undefined) return '0'

@@ -6,7 +6,6 @@ import { AISummaryCard } from '@/components/project/AISummaryCard'
 import { ReviewCard } from '@/components/reviews/ReviewCard'
 import { CommunityInfo } from '@/components/project/CommunityInfo'
 
-import { REVIEWS } from '@/data/mock'
 import { useStore, Project } from '@/lib/store'
 
 import { useState, useEffect } from 'react'
@@ -38,6 +37,25 @@ export default function ProjectPage() {
   const isJoined = useStore(state => state.joinedCommunityIds.includes(projectId))
 
   const [projectData, setProjectData] = useState<any>(null)
+  const [reviews, setReviews] = useState<any[]>([])
+  const [loadingReviews, setLoadingReviews] = useState(true)
+  
+  // Fetch reviews for this project
+  useEffect(() => {
+    async function fetchReviews() {
+      try {
+        const res = await fetch(`/api/reviews?target=${projectId}`)
+        const data = await res.json()
+        setReviews(data.reviews || [])
+      } catch (error) {
+        console.error('Failed to fetch reviews:', error)
+        setReviews([])
+      } finally {
+        setLoadingReviews(false)
+      }
+    }
+    fetchReviews()
+  }, [projectId])
   
   useEffect(() => {
     if (storedProject) {
@@ -96,9 +114,6 @@ export default function ProjectPage() {
   }, [projectId, storedProject, addProject])
 
   const data = projectData || LOADING_PROJECT
-  
-  // Filter reviews matching this project ID
-  const relevantReviews = REVIEWS.filter(r => r.projectId === projectId)
 
   const handleJoin = () => {
     if (isJoined) {
@@ -226,9 +241,15 @@ export default function ProjectPage() {
           </div>
 
           <div className="space-y-4">
-            {relevantReviews.map((review) => (
-              <ReviewCard key={review.id} review={review} />
-            ))}
+            {loadingReviews ? (
+              <div className="text-center py-8 text-gray-500">Loading reviews...</div>
+            ) : reviews.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No reviews yet. Be the first!</div>
+            ) : (
+              reviews.map((review) => (
+                <ReviewCard key={review.id} review={review} />
+              ))
+            )}
           </div>
 
         </div>
