@@ -5,19 +5,23 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ReputationOracle is Ownable {
     mapping(address => uint256) public scores;
+    mapping(address => uint256) public projectScores;
     mapping(address => bool) public blocked;
     mapping(address => bool) public updaters;
     
     uint256 public constant MAX_SCORE = 1000;
     uint256 public constant DEFAULT_SCORE = 500;
+    uint256 public constant MAX_BATCH_SIZE = 50;
     
     event ScoreUpdated(address indexed account, uint256 oldScore, uint256 newScore, address indexed updater);
+    event ProjectScoreUpdated(address indexed project, uint256 oldScore, uint256 newScore);
     event AccountBlocked(address indexed account, bool blocked);
     event UpdaterSet(address indexed updater, bool authorized);
     
     error NotAuthorized();
     error ScoreTooHigh(uint256 score);
     error ZeroAddress();
+    error BatchTooLarge(uint256 size);
     
     modifier onlyUpdater() {
         if (!updaters[msg.sender] && msg.sender != owner()) revert NotAuthorized();
@@ -34,7 +38,29 @@ contract ReputationOracle is Ownable {
         return score;
     }
     
-    function isBlocked(address account) external view returns (bool) { return blocked[account]; }
+    function isBlocked(address account) external view returns (bool) { 
+        return blocked[account]; 
+    }
+    
+    function hasMinimumReputation(address account, uint256 minScore) external view returns (bool) {
+        uint256 score = scores[account];
+        if (score == 0 && !blocked[account]) score = DEFAULT_SCORE;
+        return score >= minScore;
+    }
+    
+    function getProjectScore(address project) external view returns (uint256) {
+        uint256 score = projectScores[project];
+        if (score == 0) return DEFAULT_SCORE;
+        return score;
+    }
+    
+    function setProjectScore(address project, uint256 score) external onlyUpdater {
+        if (project == address(0)) revert ZeroAddress();
+        if (score > MAX_SCORE) revert ScoreTooHigh(score);
+        uint256 oldScore = projectScores[project];
+        projectScores[project] = score;
+        emit ProjectScoreUpdated(project, oldScore, score);
+    }
     
     function setScore(address account, uint256 score) external onlyUpdater {
         if (account == address(0)) revert ZeroAddress();
@@ -46,6 +72,7 @@ contract ReputationOracle is Ownable {
     
     function batchSetScores(address[] calldata accounts, uint256[] calldata _scores) external onlyUpdater {
         require(accounts.length == _scores.length, "Length mismatch");
+        if (accounts.length > MAX_BATCH_SIZE) revert BatchTooLarge(accounts.length);
         for (uint256 i = 0; i < accounts.length; i++) {
             if (accounts[i] == address(0)) revert ZeroAddress();
             if (_scores[i] > MAX_SCORE) revert ScoreTooHigh(_scores[i]);
