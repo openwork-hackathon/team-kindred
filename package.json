@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.20",
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.22.0",
     "@privy-io/node": "^0.8.0",
     "@privy-io/react-auth": "^3.13.0",
