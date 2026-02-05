@@ -73,7 +73,7 @@ export function PostCard({
     <div className="flex gap-0 bg-[#111113] border border-[#1f1f23] rounded-lg overflow-hidden hover:border-[#2a2a2e] transition-colors">
       {/* Vote Column */}
       <div className="w-12 bg-[#0a0a0b] flex flex-col items-center py-3">
-        <VoteButtons initialScore={upvotes} size="md" />
+        <VoteButtons initialScore={upvotes} reviewId={id} size="md" />
       </div>
 
       {/* Content */}
