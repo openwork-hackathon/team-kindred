@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -25,6 +26,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * @author Patrick Collins 🛡️ | Team Kindred
  */
 contract KindredComment is ERC721, Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+    
     // ============ Errors ============
     error InsufficientStake();
     error CommentNotFound();
@@ -142,15 +145,14 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
         uint256 unlockPrice,
         uint256 extraStake
     ) external nonReentrant returns (uint256) {
+        // ============ CHECKS ============
         if (bytes(contentHash).length == 0) revert InvalidContent();
         
         uint256 stakeAmount = MIN_STAKE + extraStake;
+        uint256 tokenId = _nextTokenId;
         
-        // Transfer stake from user
-        bool success = kindToken.transferFrom(msg.sender, address(this), stakeAmount);
-        if (!success) revert TransferFailed();
-        
-        uint256 tokenId = _nextTokenId++;
+        // ============ EFFECTS ============
+        _nextTokenId++;
         
         comments[tokenId] = Comment({
             author: msg.sender,
@@ -171,6 +173,10 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
         userComments[msg.sender].push(tokenId);
         totalComments++;
         totalStaked += stakeAmount;
+        
+        // ============ INTERACTIONS ============
+        // Transfer stake from user (after state changes)
+        kindToken.safeTransferFrom(msg.sender, address(this), stakeAmount);
         
         // Mint NFT to author
         _safeMint(msg.sender, tokenId);
@@ -199,47 +205,57 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
     }
     
     function _vote(uint256 tokenId, uint256 amount, bool isUpvote) internal {
+        // ============ CHECKS ============
         Comment storage comment = comments[tokenId];
         if (comment.author == address(0)) revert CommentNotFound();
         
-        // Transfer voting stake
-        bool success = kindToken.transferFrom(msg.sender, address(this), amount);
-        if (!success) revert TransferFailed();
+        Vote storage existingVote = votes[tokenId][msg.sender];
+        bool isNewVoter = existingVote.amount == 0;
+        uint256 oldAmount = existingVote.amount;
+        bool wasUpvote = existingVote.isUpvote;
+        uint256 newAmount = oldAmount + amount;
         
-        // Track new voter
-        if (votes[tokenId][msg.sender].amount == 0) {
+        // ============ EFFECTS ============
+        // Track new voter BEFORE external call
+        if (isNewVoter) {
             voters[tokenId].push(msg.sender);
         }
         
-        // Update vote (allows changing vote direction)
-        Vote storage existingVote = votes[tokenId][msg.sender];
-        
-        // Adjust totals if changing vote
-        if (existingVote.amount > 0) {
-            if (existingVote.isUpvote) {
-                comment.upvoteValue -= existingVote.amount;
+        // Adjust totals if changing vote direction
+        if (oldAmount > 0) {
+            if (wasUpvote) {
+                comment.upvoteValue -= oldAmount;
             } else {
-                comment.downvoteValue -= existingVote.amount;
+                comment.downvoteValue -= oldAmount;
             }
         }
         
-        // Set new vote
-        uint256 newAmount = existingVote.amount + amount;
+        // Update vote record
         votes[tokenId][msg.sender] = Vote({
             isUpvote: isUpvote,
             amount: newAmount,
             timestamp: block.timestamp
         });
         
+        // Update comment totals
         if (isUpvote) {
             comment.upvoteValue += newAmount;
-            emit CommentUpvoted(tokenId, msg.sender, amount);
         } else {
             comment.downvoteValue += newAmount;
-            emit CommentDownvoted(tokenId, msg.sender, amount);
         }
         
         totalStaked += amount;
+        
+        // ============ INTERACTIONS ============
+        // Transfer voting stake (last, after all state changes)
+        kindToken.safeTransferFrom(msg.sender, address(this), amount);
+        
+        // Emit event
+        if (isUpvote) {
+            emit CommentUpvoted(tokenId, msg.sender, amount);
+        } else {
+            emit CommentDownvoted(tokenId, msg.sender, amount);
+        }
     }
     
     /**
@@ -247,6 +263,7 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
      * @param tokenId The comment to unlock
      */
     function unlockPremium(uint256 tokenId) external nonReentrant {
+        // ============ CHECKS ============
         Comment storage comment = comments[tokenId];
         if (comment.author == address(0)) revert CommentNotFound();
         if (!comment.isPremium) revert InvalidContent();
@@ -254,15 +271,16 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
         
         uint256 price = comment.unlockPrice;
         
-        // Transfer payment
-        bool success = kindToken.transferFrom(msg.sender, address(this), price);
-        if (!success) revert TransferFailed();
-        
-        // Mark as unlocked
+        // ============ EFFECTS ============
+        // Mark as unlocked BEFORE external calls
         hasUnlocked[tokenId][msg.sender] = true;
         comment.totalUnlocks++;
         
-        // Distribute rewards
+        // ============ INTERACTIONS ============
+        // Transfer payment
+        kindToken.safeTransferFrom(msg.sender, address(this), price);
+        
+        // Distribute rewards (contains more external calls)
         _distributeRewards(tokenId, price);
         
         emit PremiumUnlocked(tokenId, msg.sender, price);
@@ -277,14 +295,14 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
         uint256 voterReward = (amount * VOTER_SHARE) / BASIS_POINTS;
         uint256 protocolFee = amount - authorReward - voterReward;
         
-        // Pay author
-        kindToken.transfer(comment.author, authorReward);
+        // Pay author (SafeERC20)
+        kindToken.safeTransfer(comment.author, authorReward);
         
         // Pay early upvoters (weighted by stake)
         _distributeToVoters(tokenId, voterReward);
         
-        // Protocol fee
-        kindToken.transfer(treasury, protocolFee);
+        // Protocol fee (SafeERC20)
+        kindToken.safeTransfer(treasury, protocolFee);
         
         emit RewardsDistributed(tokenId, authorReward, voterReward, protocolFee);
     }
@@ -292,7 +310,7 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
     function _distributeToVoters(uint256 tokenId, uint256 totalReward) internal {
         address[] memory voterList = voters[tokenId];
         if (voterList.length == 0) {
-            kindToken.transfer(treasury, totalReward);
+            kindToken.safeTransfer(treasury, totalReward);
             return;
         }
         
@@ -300,7 +318,7 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
         uint256 totalUpvotes = comment.upvoteValue;
         
         if (totalUpvotes == 0) {
-            kindToken.transfer(treasury, totalReward);
+            kindToken.safeTransfer(treasury, totalReward);
             return;
         }
         
@@ -311,7 +329,7 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
             if (vote.isUpvote && vote.amount > 0) {
                 uint256 share = (totalReward * vote.amount) / totalUpvotes;
                 if (share > 0) {
-                    kindToken.transfer(voterList[i], share);
+                    kindToken.safeTransfer(voterList[i], share);
                     distributed += share;
                 }
             }
@@ -319,7 +337,7 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
         
         // Send remainder to treasury (dust)
         if (distributed < totalReward) {
-            kindToken.transfer(treasury, totalReward - distributed);
+            kindToken.safeTransfer(treasury, totalReward - distributed);
         }
     }
     
@@ -369,6 +387,6 @@ contract KindredComment is ERC721, Ownable, ReentrancyGuard {
      * @param amount Amount to withdraw
      */
     function emergencyWithdraw(address token, uint256 amount) external onlyOwner {
-        IERC20(token).transfer(treasury, amount);
+        IERC20(token).safeTransfer(treasury, amount);
     }
 }

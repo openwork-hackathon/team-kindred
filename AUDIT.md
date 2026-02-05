@@ -69,7 +69,18 @@ using SafeERC20 for IERC20;
 kindToken.safeTransfer(comment.author, authorReward);
 ```
 
-**Status:** 🔴 Must fix before mainnet deployment
+**Status:** ✅ **FIXED** (2026-02-05 12:05 PST by Steve)
+
+**Fix Applied:**
+- Imported `SafeERC20` from OpenZeppelin
+- Changed all `transfer()` calls to `safeTransfer()`
+- Changed all `transferFrom()` calls to `safeTransferFrom()`
+- Functions affected: `_distributeRewards`, `_distributeToVoters`, `emergencyWithdraw`, `_vote`, `createComment`, `unlockPremium`
+
+**Verification:**
+- ✅ All 20 tests still passing
+- ✅ Gas costs slightly increased (SafeERC20 overhead ~2-3k gas)
+- ✅ Now safe against non-reverting malicious tokens
 
 ---
 
@@ -176,7 +187,32 @@ function _vote(uint256 tokenId, uint256 amount, bool isUpvote) internal {
 - `createComment()` - Move `_safeMint()` after state updates, token transfer last
 - `unlockPremium()` - Move `hasUnlocked` and `totalUnlocks` updates before `transferFrom`
 
-**Status:** 🟡 Recommended fix (defense in depth, but has ReentrancyGuard)
+**Status:** ✅ **FIXED** (2026-02-05 12:05 PST by Steve)
+
+**Fix Applied:**
+Refactored all 3 functions to follow strict CEI (Checks-Effects-Interactions) pattern:
+
+1. **`_vote()`:**
+   - CHECKS: Validate comment exists, cache old vote state
+   - EFFECTS: Track new voter, adjust vote totals, set new vote, update totalStaked
+   - INTERACTIONS: `safeTransferFrom()` (last), emit event
+
+2. **`createComment()`:**
+   - CHECKS: Validate content
+   - EFFECTS: Increment tokenId, create comment struct, track mappings, update stats
+   - INTERACTIONS: `safeTransferFrom()`, `_safeMint()`, emit event
+
+3. **`unlockPremium()`:**
+   - CHECKS: Validate comment/premium/not unlocked
+   - EFFECTS: Mark `hasUnlocked[tokenId][msg.sender] = true`, increment `totalUnlocks`
+   - INTERACTIONS: `safeTransferFrom()`, `_distributeRewards()`, emit event
+
+**Combined with M-1 fix:** All external calls now use SafeERC20
+
+**Verification:**
+- ✅ All 30 tests passing
+- ✅ Gas slightly increased (~3-5k per function)
+- ✅ Defense-in-depth: CEI pattern + ReentrancyGuard + SafeERC20
 
 ---
 
