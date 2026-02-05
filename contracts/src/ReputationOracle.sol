@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ReputationOracle is Ownable {
     mapping(address => uint256) public scores;
+    mapping(address => uint256) public projectScores;
     mapping(address => bool) public blocked;
     mapping(address => bool) public updaters;
     
@@ -12,6 +13,7 @@ contract ReputationOracle is Ownable {
     uint256 public constant DEFAULT_SCORE = 500;
     
     event ScoreUpdated(address indexed account, uint256 oldScore, uint256 newScore, address indexed updater);
+    event ProjectScoreUpdated(address indexed project, uint256 oldScore, uint256 newScore);
     event AccountBlocked(address indexed account, bool blocked);
     event UpdaterSet(address indexed updater, bool authorized);
     
@@ -34,7 +36,29 @@ contract ReputationOracle is Ownable {
         return score;
     }
     
-    function isBlocked(address account) external view returns (bool) { return blocked[account]; }
+    function isBlocked(address account) external view returns (bool) { 
+        return blocked[account]; 
+    }
+    
+    function hasMinimumReputation(address account, uint256 minScore) external view returns (bool) {
+        uint256 score = scores[account];
+        if (score == 0 && !blocked[account]) score = DEFAULT_SCORE;
+        return score >= minScore;
+    }
+    
+    function getProjectScore(address project) external view returns (uint256) {
+        uint256 score = projectScores[project];
+        if (score == 0) return DEFAULT_SCORE;
+        return score;
+    }
+    
+    function setProjectScore(address project, uint256 score) external onlyUpdater {
+        if (project == address(0)) revert ZeroAddress();
+        if (score > MAX_SCORE) revert ScoreTooHigh(score);
+        uint256 oldScore = projectScores[project];
+        projectScores[project] = score;
+        emit ProjectScoreUpdated(project, oldScore, score);
+    }
     
     function setScore(address account, uint256 score) external onlyUpdater {
         if (account == address(0)) revert ZeroAddress();
