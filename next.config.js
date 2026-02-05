@@ -10,6 +10,8 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@rainbow-me/rainbowkit'],
   },
+  // Use SSR instead of static export to avoid localStorage issues
+  output: 'standalone',
 }
 
 module.exports = nextConfig
