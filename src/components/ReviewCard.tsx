@@ -1,5 +1,7 @@
 'use client'
 
+import { useVote } from '@/hooks/useVote'
+
 interface ReviewCardProps {
   review: {
     id: string
@@ -29,6 +31,12 @@ const CATEGORY_ICONS: Record<string, string> = {
 }
 
 export function ReviewCard({ review }: ReviewCardProps) {
+  const { upvotes, downvotes, userVote, voting, vote } = useVote({
+    reviewId: review.id,
+    initialUpvotes: review.upvotes,
+    initialDownvotes: review.downvotes,
+  })
+
   const stakeInEth = Number(review.stakeAmount) / 1e18
   const truncateAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`
   
@@ -74,13 +82,29 @@ export function ReviewCard({ review }: ReviewCardProps) {
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-800">
         <div className="flex items-center gap-4">
-          <button className="flex items-center gap-1 text-gray-400 hover:text-green-400 transition">
+          <button 
+            onClick={() => vote('up')}
+            disabled={voting || userVote === 'up'}
+            className={`flex items-center gap-1 transition ${
+              userVote === 'up' 
+                ? 'text-green-400' 
+                : 'text-gray-400 hover:text-green-400'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
             <span>👍</span>
-            <span className="text-sm">{review.upvotes}</span>
+            <span className="text-sm font-medium">{upvotes}</span>
           </button>
-          <button className="flex items-center gap-1 text-gray-400 hover:text-red-400 transition">
+          <button 
+            onClick={() => vote('down')}
+            disabled={voting || userVote === 'down'}
+            className={`flex items-center gap-1 transition ${
+              userVote === 'down' 
+                ? 'text-red-400' 
+                : 'text-gray-400 hover:text-red-400'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
             <span>👎</span>
-            <span className="text-sm">{review.downvotes}</span>
+            <span className="text-sm font-medium">{downvotes}</span>
           </button>
         </div>
         {stakeInEth > 0 && (
