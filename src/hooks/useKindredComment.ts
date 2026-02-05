@@ -149,3 +149,7 @@ export function useGetNetScore(tokenId: bigint | undefined) {
     },
   })
 }
+
+// More legacy aliases for backwards compatibility
+export const useComment = useGetComment
+export const useNetScore = useGetNetScore

@@ -73,3 +73,26 @@ export function useKindTokenBalance(address: Address | undefined) {
     },
   })
 }
+
+// Legacy aliases for backwards compatibility
+export const useKindBalance = useKindTokenBalance
+export const useKindAllowance = useKindTokenAllowance
+export const useApproveKind = useApproveKindToken
+
+// Utility functions
+export function parseKind(amount: string): bigint {
+  try {
+    const num = parseFloat(amount)
+    return BigInt(Math.floor(num * 1e18))
+  } catch {
+    return BigInt(0)
+  }
+}
+
+export function formatKind(amount: bigint): string {
+  try {
+    return (Number(amount) / 1e18).toFixed(4)
+  } catch {
+    return '0'
+  }
+}
