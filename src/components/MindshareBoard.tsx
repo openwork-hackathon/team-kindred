@@ -1,169 +1,150 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { TrendingUp, TrendingDown, Minus, ChevronDown, Flame, Clock, Award, BarChart3, ArrowUpRight } from 'lucide-react'
 
-type Category = 'all' | 'k/defi' | 'k/perp-dex' | 'k/ai' | 'k/memecoin'
+type Category = 'all' | 'k/defi' | 'k/perp-dex' | 'k/ai' | 'k/restaurants'
 type TimeRange = '24h' | '7d' | '30d'
 
 interface MindshareEntry {
   rank: number
-  name: string
-  ticker: string
-  category: Category
-  mindshare: number
-  mindshareChange: number
-  staked: number
-  reviews: number
-  sentiment: number
-  color: string
+  projectAddress: string
+  projectName: string
+  category: string
+  avgRating: number
+  reviewCount: number
+  totalStaked: string
+  weeklyChange: number
+  predictedRank: number | null
 }
 
-const MOCK_DATA: MindshareEntry[] = [
-  { rank: 1, name: 'Hyperliquid', ticker: 'HYPE', category: 'k/perp-dex', mindshare: 18.4, mindshareChange: 3.2, staked: 180000, reviews: 312, sentiment: 92, color: '#8B5CF6' },
-  { rank: 2, name: 'Aave V3', ticker: 'AAVE', category: 'k/defi', mindshare: 14.2, mindshareChange: -0.8, staked: 125000, reviews: 234, sentiment: 88, color: '#6366F1' },
-  { rank: 3, name: 'Uniswap V4', ticker: 'UNI', category: 'k/defi', mindshare: 12.1, mindshareChange: 1.5, staked: 98000, reviews: 189, sentiment: 85, color: '#EC4899' },
-  { rank: 4, name: 'ai16z', ticker: 'AI16Z', category: 'k/ai', mindshare: 9.8, mindshareChange: 5.1, staked: 92000, reviews: 167, sentiment: 78, color: '#10B981' },
-  { rank: 5, name: 'POPCAT', ticker: 'POPCAT', category: 'k/memecoin', mindshare: 8.3, mindshareChange: -2.1, staked: 76000, reviews: 298, sentiment: 71, color: '#F59E0B' },
-  { rank: 6, name: 'GMX V2', ticker: 'GMX', category: 'k/perp-dex', mindshare: 7.6, mindshareChange: -0.3, staked: 156000, reviews: 278, sentiment: 90, color: '#3B82F6' },
-  { rank: 7, name: 'Virtuals', ticker: 'VIRTUAL', category: 'k/ai', mindshare: 6.4, mindshareChange: 8.7, staked: 45000, reviews: 89, sentiment: 82, color: '#14B8A6' },
-  { rank: 8, name: 'Lido', ticker: 'LDO', category: 'k/defi', mindshare: 5.9, mindshareChange: -1.2, staked: 65000, reviews: 142, sentiment: 84, color: '#F97316' },
-  { rank: 9, name: 'dYdX V4', ticker: 'DYDX', category: 'k/perp-dex', mindshare: 5.1, mindshareChange: 0.4, staked: 134000, reviews: 245, sentiment: 87, color: '#6D28D9' },
-  { rank: 10, name: 'WIF', ticker: 'WIF', category: 'k/memecoin', mindshare: 4.7, mindshareChange: -3.5, staked: 54000, reviews: 187, sentiment: 65, color: '#EF4444' },
-]
+interface LeaderboardResponse {
+  leaderboard: MindshareEntry[]
+  total: number
+  categories: string[]
+  lastUpdated: string
+  nextSettlement: string
+}
 
 const CATEGORIES = [
   { id: 'all' as Category, label: 'All', icon: BarChart3 },
   { id: 'k/defi' as Category, label: 'DeFi', icon: Award },
   { id: 'k/perp-dex' as Category, label: 'Perp DEX', icon: TrendingUp },
-  { id: 'k/ai' as Category, label: 'AI Agents', icon: Flame },
-  { id: 'k/memecoin' as Category, label: 'Memecoins', icon: Clock },
+  { id: 'k/restaurants' as Category, label: 'Restaurants', icon: Flame },
+  { id: 'k/ai' as Category, label: 'AI Agents', icon: Clock },
 ]
 
-function formatNumber(n: number): string {
-  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`
-  if (n >= 1000) return `${(n / 1000).toFixed(0)}K`
-  return n.toString()
+function formatNumber(n: number | string): string {
+  const num = typeof n === 'string' ? parseFloat(n) : n
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
+  if (num >= 1000) return `${(num / 1000).toFixed(0)}K`
+  return num.toFixed(0)
 }
 
-function MindshareBar({ value, color, maxValue }: { value: number; color: string; maxValue: number }) {
-  const width = (value / maxValue) * 100
+function MindshareBar({ value, maxValue }: { value: number; maxValue: number }) {
+  const percentage = (value / maxValue) * 100
+
   return (
-    <div className="w-full h-2 bg-[#1a1a1d] rounded-full overflow-hidden">
-      <div 
-        className="h-full rounded-full transition-all duration-500"
-        style={{ width: `${width}%`, backgroundColor: color }}
+    <div className="relative h-1.5 bg-gray-800 rounded-full overflow-hidden">
+      <div
+        className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#FF6B35] to-[#F7931E] rounded-full transition-all duration-500"
+        style={{ width: `${percentage}%` }}
       />
     </div>
   )
 }
 
-function ChangeIndicator({ value }: { value: number }) {
-  if (value > 0) return (
-    <span className="flex items-center gap-0.5 text-green-400 text-sm font-medium">
-      <TrendingUp className="w-3.5 h-3.5" />
-      +{value.toFixed(1)}%
-    </span>
-  )
-  if (value < 0) return (
-    <span className="flex items-center gap-0.5 text-red-400 text-sm font-medium">
-      <TrendingDown className="w-3.5 h-3.5" />
-      {value.toFixed(1)}%
-    </span>
-  )
+function ChangeIndicator({ change }: { change: number }) {
+  if (change > 0) {
+    return (
+      <span className="flex items-center gap-0.5 text-green-400 text-xs font-medium">
+        <TrendingUp className="w-3 h-3" />
+        +{change}
+      </span>
+    )
+  }
+  if (change < 0) {
+    return (
+      <span className="flex items-center gap-0.5 text-red-400 text-xs font-medium">
+        <TrendingDown className="w-3 h-3" />
+        {change}
+      </span>
+    )
+  }
   return (
-    <span className="flex items-center gap-0.5 text-[#6b6b70] text-sm font-medium">
-      <Minus className="w-3.5 h-3.5" />
-      0.0%
+    <span className="flex items-center gap-0.5 text-gray-500 text-xs font-medium">
+      <Minus className="w-3 h-3" />
+      0
     </span>
-  )
-}
-
-function SentimentDot({ value }: { value: number }) {
-  const color = value >= 80 ? 'bg-green-400' : value >= 60 ? 'bg-yellow-400' : 'bg-red-400'
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className={`w-2 h-2 rounded-full ${color}`} />
-      <span className="text-sm text-[#adadb0]">{value}</span>
-    </div>
   )
 }
 
 export function MindshareBoard() {
   const [category, setCategory] = useState<Category>('all')
   const [timeRange, setTimeRange] = useState<TimeRange>('7d')
+  const [data, setData] = useState<MindshareEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const filtered = category === 'all' 
-    ? MOCK_DATA 
-    : MOCK_DATA.filter(e => e.category === category)
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      setLoading(true)
+      setError(null)
 
-  const maxMindshare = Math.max(...filtered.map(e => e.mindshare))
-  const totalMindshare = filtered.reduce((sum, e) => sum + e.mindshare, 0)
+      try {
+        const params = new URLSearchParams({
+          category: category === 'all' ? '' : category,
+          limit: '20',
+        })
+
+        const res = await fetch(`/api/leaderboard?${params}`)
+        if (!res.ok) throw new Error('Failed to fetch leaderboard')
+
+        const json: LeaderboardResponse = await res.json()
+        setData(json.leaderboard)
+      } catch (err) {
+        console.error('Leaderboard fetch error:', err)
+        setError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchLeaderboard()
+  }, [category, timeRange])
+
+  const maxMindshare = data.length > 0 ? Math.max(...data.map(d => parseFloat(d.totalStaked))) : 1
 
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-1">Mindshare</h1>
-          <p className="text-[#6b6b70]">Community attention across Web3 projects</p>
+          <h1 className="text-3xl font-bold">Mindshare Leaderboard</h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Community-driven project rankings • Weekly settlement
+          </p>
         </div>
-        
-        {/* Time Range */}
-        <div className="flex items-center gap-1 bg-[#111113] rounded-lg p-1 border border-[#1f1f23]">
-          {(['24h', '7d', '30d'] as TimeRange[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTimeRange(t)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                timeRange === t
-                  ? 'bg-purple-500/20 text-purple-400'
-                  : 'text-[#6b6b70] hover:text-white'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
+        <div className="flex gap-2">
+          <button className="px-4 py-2 bg-[#FF6B35] text-white rounded-lg hover:bg-[#e55a2a] transition-colors font-medium">
+            Stake & Predict
+          </button>
         </div>
       </div>
 
-      {/* Top Mindshare Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        {filtered.slice(0, 4).map((entry) => (
-          <div key={entry.name} className="bg-[#111113] border border-[#1f1f23] rounded-xl p-4 hover:border-[#2a2a2e] transition-colors">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style={{ backgroundColor: entry.color + '20', color: entry.color }}>
-                  {entry.ticker.slice(0, 2)}
-                </div>
-                <div>
-                  <div className="text-sm font-semibold">{entry.ticker}</div>
-                  <div className="text-xs text-[#6b6b70]">#{entry.rank}</div>
-                </div>
-              </div>
-              <ChangeIndicator value={entry.mindshareChange} />
-            </div>
-            <div className="text-2xl font-bold mb-1" style={{ color: entry.color }}>
-              {entry.mindshare.toFixed(1)}%
-            </div>
-            <MindshareBar value={entry.mindshare} color={entry.color} maxValue={maxMindshare} />
-          </div>
-        ))}
-      </div>
-
-      {/* Category Tabs */}
-      <div className="flex items-center gap-1 mb-6 overflow-x-auto pb-2">
+      {/* Filters */}
+      <div className="flex gap-3 pb-4 border-b border-gray-800">
         {CATEGORIES.map((cat) => {
           const Icon = cat.icon
           return (
             <button
               key={cat.id}
               onClick={() => setCategory(cat.id)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                 category === cat.id
-                  ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                  : 'text-[#6b6b70] hover:text-white hover:bg-[#111113] border border-transparent'
+                  ? 'bg-[#FF6B35] text-white'
+                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800 hover:text-white'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -173,95 +154,82 @@ export function MindshareBoard() {
         })}
       </div>
 
-      {/* Table */}
-      <div className="bg-[#111113] border border-[#1f1f23] rounded-xl overflow-hidden">
-        {/* Table Header */}
-        <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-[#1f1f23] text-xs font-medium text-[#6b6b70] uppercase tracking-wider">
-          <div className="col-span-1">#</div>
-          <div className="col-span-3">Project</div>
-          <div className="col-span-3">Mindshare</div>
-          <div className="col-span-1 text-right">Change</div>
-          <div className="col-span-1 text-right">Staked</div>
-          <div className="col-span-1 text-right">Reviews</div>
-          <div className="col-span-1 text-right">Sentiment</div>
-          <div className="col-span-1"></div>
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-12 text-gray-400">
+          Loading leaderboard...
         </div>
+      )}
 
-        {/* Rows */}
-        {filtered.map((entry, i) => (
-          <Link
-            key={entry.name}
-            href={`/project/${entry.name.toLowerCase().replace(/\s+/g, '-')}`}
-            className={`grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-[#1a1a1d] transition-colors cursor-pointer ${
-              i !== filtered.length - 1 ? 'border-b border-[#1a1a1d]' : ''
-            }`}
-          >
-            {/* Rank */}
-            <div className="col-span-1">
-              <span className={`text-sm font-bold ${entry.rank <= 3 ? 'text-purple-400' : 'text-[#6b6b70]'}`}>
-                {entry.rank}
-              </span>
-            </div>
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12 text-red-400">
+          Error: {error}
+        </div>
+      )}
 
-            {/* Project */}
-            <div className="col-span-3 flex items-center gap-3">
-              <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
-                style={{ backgroundColor: entry.color + '15', color: entry.color }}
-              >
-                {entry.ticker.slice(0, 3)}
-              </div>
-              <div>
-                <div className="text-sm font-semibold">{entry.name}</div>
-                <div className="text-xs text-[#6b6b70]">{entry.ticker}</div>
-              </div>
-            </div>
-
-            {/* Mindshare */}
-            <div className="col-span-3">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold min-w-[52px]" style={{ color: entry.color }}>
-                  {entry.mindshare.toFixed(1)}%
-                </span>
-                <div className="flex-1">
-                  <MindshareBar value={entry.mindshare} color={entry.color} maxValue={maxMindshare} />
+      {/* Leaderboard Table */}
+      {!loading && !error && data.length > 0 && (
+        <div className="space-y-2">
+          {data.map((entry) => (
+            <Link
+              key={entry.projectAddress}
+              href={`/projects/${entry.projectAddress}`}
+              className="block bg-gray-900/50 hover:bg-gray-900 border border-gray-800 rounded-lg p-4 transition-all hover:border-gray-700 group"
+            >
+              <div className="flex items-center gap-4">
+                {/* Rank */}
+                <div className="w-8 text-center">
+                  <div className="text-lg font-bold text-gray-400 group-hover:text-[#FF6B35] transition-colors">
+                    {entry.rank}
+                  </div>
                 </div>
+
+                {/* Project Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-lg font-semibold truncate group-hover:text-[#FF6B35] transition-colors">
+                      {entry.projectName}
+                    </h3>
+                    <span className="px-2 py-0.5 text-xs bg-gray-800 text-gray-400 rounded">
+                      {entry.category.replace('k/', '')}
+                    </span>
+                    <ChangeIndicator change={entry.weeklyChange} />
+                  </div>
+
+                  <MindshareBar value={parseFloat(entry.totalStaked)} maxValue={maxMindshare} />
+                </div>
+
+                {/* Stats */}
+                <div className="flex gap-8 text-sm">
+                  <div className="text-center">
+                    <div className="text-gray-400 text-xs mb-1">Staked</div>
+                    <div className="font-semibold">${formatNumber(entry.totalStaked)}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-gray-400 text-xs mb-1">Reviews</div>
+                    <div className="font-semibold">{entry.reviewCount}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-gray-400 text-xs mb-1">Rating</div>
+                    <div className="font-semibold">{entry.avgRating.toFixed(1)}★</div>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <ArrowUpRight className="w-5 h-5 text-gray-600 group-hover:text-[#FF6B35] transition-colors" />
               </div>
-            </div>
+            </Link>
+          ))}
+        </div>
+      )}
 
-            {/* Change */}
-            <div className="col-span-1 text-right">
-              <ChangeIndicator value={entry.mindshareChange} />
-            </div>
-
-            {/* Staked */}
-            <div className="col-span-1 text-right">
-              <span className="text-sm text-[#adadb0]">{formatNumber(entry.staked)}</span>
-            </div>
-
-            {/* Reviews */}
-            <div className="col-span-1 text-right">
-              <span className="text-sm text-[#adadb0]">{entry.reviews}</span>
-            </div>
-
-            {/* Sentiment */}
-            <div className="col-span-1 flex justify-end">
-              <SentimentDot value={entry.sentiment} />
-            </div>
-
-            {/* Arrow */}
-            <div className="col-span-1 flex justify-end">
-              <ArrowUpRight className="w-4 h-4 text-[#6b6b70]" />
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* Footer Stats */}
-      <div className="flex items-center justify-between mt-4 px-2 text-sm text-[#6b6b70]">
-        <span>Showing {filtered.length} projects</span>
-        <span>Total mindshare tracked: {totalMindshare.toFixed(1)}%</span>
-      </div>
+      {/* Empty State */}
+      {!loading && !error && data.length === 0 && (
+        <div className="text-center py-12 text-gray-400">
+          No projects found in this category
+        </div>
+      )}
     </div>
   )
 }
