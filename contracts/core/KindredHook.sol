@@ -32,9 +32,9 @@ contract KindredHook is BaseHook {
     // Below 100: blocked
     
     /// @notice Fee rates in basis points (1 bp = 0.01%)
-    uint24 public constant FEE_ELITE = 10;      // 0.1%
-    uint24 public constant FEE_TRUSTED = 20;    // 0.2%
-    uint24 public constant FEE_NORMAL = 30;     // 0.3%
+    uint24 public constant FEE_ELITE = 5;       // 0.05%
+    uint24 public constant FEE_TRUSTED = 15;    // 0.15%
+    uint24 public constant FEE_NORMAL = 25;     // 0.25%
     uint24 public constant FEE_RISKY = 50;      // 0.5%
     
     // ============ Errors ============

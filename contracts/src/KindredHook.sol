@@ -14,10 +14,10 @@ contract KindredHook {
     uint256 public constant TRUSTED_THRESHOLD = 700;
     uint256 public constant NORMAL_THRESHOLD = 400;
     
-    uint24 public constant FEE_ELITE = 10;
-    uint24 public constant FEE_TRUSTED = 20;
-    uint24 public constant FEE_NORMAL = 30;
-    uint24 public constant FEE_RISKY = 50;
+    uint24 public constant FEE_ELITE = 5;       // 0.05%
+    uint24 public constant FEE_TRUSTED = 15;    // 0.15%
+    uint24 public constant FEE_NORMAL = 25;     // 0.25%
+    uint24 public constant FEE_RISKY = 50;      // 0.5%
     
     error ReputationTooLow(address account, uint256 score);
     error AccountBlocked(address account);
