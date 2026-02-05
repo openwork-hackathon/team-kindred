@@ -1,101 +1,102 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
 
-// Types
-interface LeaderboardEntry {
-  rank: number
-  projectAddress: string
-  projectName: string
-  category: 'k/defi' | 'k/memecoin' | 'k/perp-dex' | 'k/ai'
-  avgRating: number
-  reviewCount: number
-  totalStaked: string
-  weeklyChange: number // rank change from last week
-  predictedRank: number | null // stake-weighted prediction
-}
-
-// In-memory leaderboard (replace with calculated from reviews + stakes)
-const leaderboard: LeaderboardEntry[] = [
-  {
-    rank: 1,
-    projectAddress: '0x1234567890abcdef1234567890abcdef12345678',
-    projectName: 'Hyperliquid',
-    category: 'k/perp-dex',
-    avgRating: 4.8,
-    reviewCount: 156,
-    totalStaked: '500000000000000000000', // 500 tokens
-    weeklyChange: 0,
-    predictedRank: 1,
-  },
-  {
-    rank: 2,
-    projectAddress: '0xdeadbeef1234567890abcdef1234567890abcdef',
-    projectName: 'Aave',
-    category: 'k/defi',
-    avgRating: 4.6,
-    reviewCount: 243,
-    totalStaked: '450000000000000000000',
-    weeklyChange: 1,
-    predictedRank: 2,
-  },
-  {
-    rank: 3,
-    projectAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
-    projectName: 'GMX',
-    category: 'k/perp-dex',
-    avgRating: 4.5,
-    reviewCount: 189,
-    totalStaked: '380000000000000000000',
-    weeklyChange: -1,
-    predictedRank: 4,
-  },
-  {
-    rank: 4,
-    projectAddress: '0x9999888877776666555544443333222211110000',
-    projectName: 'Uniswap',
-    category: 'k/defi',
-    avgRating: 4.7,
-    reviewCount: 312,
-    totalStaked: '320000000000000000000',
-    weeklyChange: 2,
-    predictedRank: 3,
-  },
-  {
-    rank: 5,
-    projectAddress: '0x5555666677778888999900001111222233334444',
-    projectName: 'PEPE',
-    category: 'k/memecoin',
-    avgRating: 3.2,
-    reviewCount: 89,
-    totalStaked: '150000000000000000000',
-    weeklyChange: 5,
-    predictedRank: 8,
-  },
-]
-
-// GET /api/leaderboard
+// GET /api/leaderboard?category=defi&limit=20&offset=0
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const category = searchParams.get('category')
-  const limit = parseInt(searchParams.get('limit') || '20')
-  const offset = parseInt(searchParams.get('offset') || '0')
+  try {
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get('category')
+    const limit = parseInt(searchParams.get('limit') || '20', 10)
+    const offset = parseInt(searchParams.get('offset') || '0', 10)
 
-  let filtered = [...leaderboard]
+    // Build where clause
+    const where: any = {}
+    if (category && category !== 'all') {
+      where.category = category
+    }
 
-  if (category && category !== 'all') {
-    filtered = filtered.filter(e => e.category === category)
-    // Re-rank within category
-    filtered = filtered.map((e, i) => ({ ...e, rank: i + 1 }))
+    // Fetch projects with stats
+    const projects = await prisma.project.findMany({
+      where,
+      select: {
+        id: true,
+        address: true,
+        name: true,
+        category: true,
+        avgRating: true,
+        reviewCount: true,
+        totalStaked: true,
+        currentRank: true,
+        updatedAt: true,
+      },
+      orderBy: [
+        { avgRating: 'desc' },
+        { reviewCount: 'desc' },
+      ],
+    })
+
+    // Calculate composite scores and rank
+    const maxStaked = projects.reduce((max, p) => {
+      const staked = parseFloat(p.totalStaked || '0')
+      return Math.max(max, staked)
+    }, 1)
+
+    const scored = projects.map((project) => {
+      const staked = parseFloat(project.totalStaked || '0')
+      const stakedNormalized = maxStaked > 0 ? staked / maxStaked : 0
+
+      // Composite score: 50% rating, 30% review count, 20% staked
+      const score =
+        project.avgRating * 0.5 +
+        Math.min(project.reviewCount / 10, 5) * 0.3 + // Normalize review count
+        stakedNormalized * 5 * 0.2
+
+      return {
+        ...project,
+        score,
+      }
+    })
+
+    // Sort by score descending
+    scored.sort((a, b) => b.score - a.score)
+
+    // Assign ranks
+    const ranked = scored.map((item, index) => ({
+      rank: index + 1,
+      projectAddress: item.address,
+      projectName: item.name,
+      category: item.category,
+      avgRating: parseFloat(item.avgRating.toFixed(2)),
+      reviewCount: item.reviewCount,
+      totalStaked: item.totalStaked,
+      weeklyChange: item.currentRank ? item.currentRank - (index + 1) : 0,
+      predictedRank: null, // TODO: Calculate from weighted stake predictions
+    }))
+
+    // Paginate
+    const paginated = ranked.slice(offset, offset + limit)
+
+    // Get unique categories
+    const allProjects = await prisma.project.findMany({
+      select: { category: true },
+      distinct: ['category'],
+    })
+    const categories = allProjects.map((p) => p.category)
+
+    return NextResponse.json({
+      leaderboard: paginated,
+      total: ranked.length,
+      categories: categories.length > 0 ? categories : ['defi', 'memecoin', 'perp-dex', 'ai'],
+      lastUpdated: new Date().toISOString(),
+      nextSettlement: getNextSunday().toISOString(),
+    })
+  } catch (error: any) {
+    console.error('Error fetching leaderboard:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch leaderboard', details: error.message },
+      { status: 500 }
+    )
   }
-
-  const paginated = filtered.slice(offset, offset + limit)
-
-  return NextResponse.json({
-    leaderboard: paginated,
-    total: filtered.length,
-    categories: ['k/defi', 'k/memecoin', 'k/perp-dex', 'k/ai'],
-    lastUpdated: new Date().toISOString(),
-    nextSettlement: getNextSunday().toISOString(), // Weekly settlement
-  })
 }
 
 // Helper: Get next Sunday midnight UTC

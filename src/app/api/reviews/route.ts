@@ -1,135 +1,252 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
 
-// Types
-interface Review {
-  id: string
-  targetAddress: string
-  targetName: string
-  reviewerAddress: string
-  rating: number
-  content: string
-  category: 'k/defi' | 'k/memecoin' | 'k/perp-dex' | 'k/ai'
-  predictedRank: number | null
-  stakeAmount: string
-  photoUrls: string[]
-  upvotes: number
-  downvotes: number
-  createdAt: string
-}
-
-// In-memory store (replace with DB later)
-const reviews: Review[] = [
-  {
-    id: 'rev_1',
-    targetAddress: '0x1234567890abcdef1234567890abcdef12345678',
-    targetName: 'Hyperliquid',
-    reviewerAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
-    rating: 5,
-    content: 'Best perp DEX by far. Low fees, fast execution, great UX.',
-    category: 'k/perp-dex',
-    predictedRank: 1,
-    stakeAmount: '5000000000000000000',
-    photoUrls: [],
-    upvotes: 42,
-    downvotes: 3,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'rev_2',
-    targetAddress: '0xdeadbeef1234567890abcdef1234567890abcdef',
-    targetName: 'Aave',
-    reviewerAddress: '0x1111222233334444555566667777888899990000',
-    rating: 4,
-    content: 'Solid lending protocol. Been using it for 2 years without issues.',
-    category: 'k/defi',
-    predictedRank: 2,
-    stakeAmount: '10000000000000000000',
-    photoUrls: [],
-    upvotes: 28,
-    downvotes: 5,
-    createdAt: new Date().toISOString(),
-  },
-]
-
-// GET /api/reviews
+// GET /api/reviews?category=k/defi&target=0x...&sort=hot
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const category = searchParams.get('category')
-  const target = searchParams.get('target')
-  const sort = searchParams.get('sort') || 'hot' // hot, new, top
+  try {
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get('category')
+    const target = searchParams.get('target')
+    const sort = searchParams.get('sort') || 'hot' // hot, new, top
 
-  let filtered = [...reviews]
+    // Build where clause
+    const where: any = { status: 'active' }
+    
+    if (category) {
+      where.project = { category }
+    }
+    
+    if (target) {
+      where.project = {
+        ...where.project,
+        OR: [
+          { address: { contains: target, mode: 'insensitive' } },
+          { name: { contains: target, mode: 'insensitive' } },
+        ],
+      }
+    }
 
-  if (category) {
-    filtered = filtered.filter(r => r.category === category)
-  }
-  if (target) {
-    filtered = filtered.filter(r => 
-      r.targetAddress.toLowerCase() === target.toLowerCase() ||
-      r.targetName.toLowerCase().includes(target.toLowerCase())
-    )
-  }
+    // Fetch reviews with relations
+    const reviews = await prisma.review.findMany({
+      where,
+      include: {
+        reviewer: {
+          select: {
+            id: true,
+            address: true,
+            displayName: true,
+            avatarUrl: true,
+            reputationScore: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            address: true,
+            name: true,
+            category: true,
+          },
+        },
+      },
+      orderBy:
+        sort === 'new'
+          ? { createdAt: 'desc' }
+          : sort === 'top'
+          ? { upvotes: 'desc' }
+          : { createdAt: 'desc' }, // Hot sorting done client-side
+    })
 
-  // Sort
-  switch (sort) {
-    case 'new':
-      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      break
-    case 'top':
-      filtered.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes))
-      break
-    case 'hot':
-    default:
-      // Hot = score decay over time
-      filtered.sort((a, b) => {
-        const scoreA = (a.upvotes - a.downvotes) / Math.pow((Date.now() - new Date(a.createdAt).getTime()) / 3600000 + 2, 1.5)
-        const scoreB = (b.upvotes - b.downvotes) / Math.pow((Date.now() - new Date(b.createdAt).getTime()) / 3600000 + 2, 1.5)
+    // Apply hot sorting if needed (score decay over time)
+    let sortedReviews = reviews
+    if (sort === 'hot') {
+      sortedReviews = reviews.sort((a, b) => {
+        const now = Date.now()
+        const scoreA =
+          (a.upvotes - a.downvotes) /
+          Math.pow((now - a.createdAt.getTime()) / 3600000 + 2, 1.5)
+        const scoreB =
+          (b.upvotes - b.downvotes) /
+          Math.pow((now - b.createdAt.getTime()) / 3600000 + 2, 1.5)
         return scoreB - scoreA
       })
-  }
+    }
 
-  return NextResponse.json({
-    reviews: filtered,
-    total: filtered.length,
-  })
+    // Transform to API format
+    const formattedReviews = sortedReviews.map((r) => ({
+      id: r.id,
+      targetAddress: r.project.address,
+      targetName: r.project.name,
+      reviewerAddress: r.reviewer.address,
+      reviewerName: r.reviewer.displayName,
+      reviewerReputation: r.reviewer.reputationScore,
+      rating: r.rating,
+      content: r.content,
+      category: r.project.category,
+      predictedRank: r.predictedRank,
+      stakeAmount: r.stakeAmount,
+      photoUrls: r.photoUrls ? JSON.parse(r.photoUrls) : [],
+      upvotes: r.upvotes,
+      downvotes: r.downvotes,
+      nftTokenId: r.nftTokenId,
+      contractAddress: r.contractAddress,
+      createdAt: r.createdAt.toISOString(),
+    }))
+
+    return NextResponse.json({
+      reviews: formattedReviews,
+      total: formattedReviews.length,
+    })
+  } catch (error: any) {
+    console.error('Error fetching reviews:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch reviews', details: error.message },
+      { status: 500 }
+    )
+  }
 }
 
 // POST /api/reviews
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     // Validation
     if (!body.targetAddress?.match(/^0x[a-fA-F0-9]{40}$/)) {
-      return NextResponse.json({ error: 'Invalid target address' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Invalid target address' },
+        { status: 400 }
+      )
     }
     if (!body.rating || body.rating < 1 || body.rating > 5) {
-      return NextResponse.json({ error: 'Rating must be 1-5' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Rating must be 1-5' },
+        { status: 400 }
+      )
     }
     if (!body.content || body.content.length < 10) {
-      return NextResponse.json({ error: 'Content must be at least 10 characters' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Content must be at least 10 characters' },
+        { status: 400 }
+      )
+    }
+    if (!body.reviewerAddress?.match(/^0x[a-fA-F0-9]{40}$/)) {
+      return NextResponse.json(
+        { error: 'Invalid reviewer address' },
+        { status: 400 }
+      )
     }
 
-    const review: Review = {
-      id: `rev_${Date.now()}`,
-      targetAddress: body.targetAddress,
-      targetName: body.targetName || 'Unknown',
-      reviewerAddress: body.reviewerAddress || '0x0000000000000000000000000000000000000000',
-      rating: body.rating,
-      content: body.content,
-      category: body.category || 'k/defi',
-      predictedRank: body.predictedRank || null,
-      stakeAmount: body.stakeAmount || '0',
-      photoUrls: body.photoUrls || [],
-      upvotes: 0,
-      downvotes: 0,
-      createdAt: new Date().toISOString(),
+    // Find or create user
+    let user = await prisma.user.findUnique({
+      where: { address: body.reviewerAddress.toLowerCase() },
+    })
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          address: body.reviewerAddress.toLowerCase(),
+          displayName: body.reviewerName || null,
+        },
+      })
     }
 
-    reviews.push(review)
+    // Find or create project
+    let project = await prisma.project.findUnique({
+      where: { address: body.targetAddress.toLowerCase() },
+    })
 
-    return NextResponse.json(review, { status: 201 })
-  } catch (error) {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    if (!project) {
+      project = await prisma.project.create({
+        data: {
+          address: body.targetAddress.toLowerCase(),
+          name: body.targetName || 'Unknown Project',
+          category: body.category || 'defi',
+        },
+      })
+    }
+
+    // Create review
+    const review = await prisma.review.create({
+      data: {
+        reviewerId: user.id,
+        projectId: project.id,
+        rating: body.rating,
+        content: body.content,
+        predictedRank: body.predictedRank || null,
+        stakeAmount: body.stakeAmount || '0',
+        photoUrls: body.photoUrls ? JSON.stringify(body.photoUrls) : null,
+      },
+      include: {
+        reviewer: {
+          select: {
+            address: true,
+            displayName: true,
+            reputationScore: true,
+          },
+        },
+        project: {
+          select: {
+            address: true,
+            name: true,
+            category: true,
+          },
+        },
+      },
+    })
+
+    // Update user stats
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        totalReviews: { increment: 1 },
+        totalStaked: {
+          set: (
+            BigInt(user.totalStaked) + BigInt(body.stakeAmount || '0')
+          ).toString(),
+        },
+      },
+    })
+
+    // Update project stats
+    const allReviews = await prisma.review.findMany({
+      where: { projectId: project.id, status: 'active' },
+      select: { rating: true },
+    })
+    const avgRating =
+      allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
+
+    await prisma.project.update({
+      where: { id: project.id },
+      data: {
+        avgRating,
+        reviewCount: allReviews.length,
+      },
+    })
+
+    // Format response
+    const response = {
+      id: review.id,
+      targetAddress: review.project.address,
+      targetName: review.project.name,
+      reviewerAddress: review.reviewer.address,
+      reviewerName: review.reviewer.displayName,
+      rating: review.rating,
+      content: review.content,
+      category: review.project.category,
+      predictedRank: review.predictedRank,
+      stakeAmount: review.stakeAmount,
+      photoUrls: review.photoUrls ? JSON.parse(review.photoUrls) : [],
+      upvotes: review.upvotes,
+      downvotes: review.downvotes,
+      createdAt: review.createdAt.toISOString(),
+    }
+
+    return NextResponse.json(response, { status: 201 })
+  } catch (error: any) {
+    console.error('Error creating review:', error)
+    return NextResponse.json(
+      { error: 'Failed to create review', details: error.message },
+      { status: 500 }
+    )
   }
 }
