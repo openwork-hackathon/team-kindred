@@ -148,10 +148,12 @@ export function MindshareBoard() {
       <div className="flex items-center gap-1 mb-6 overflow-x-auto pb-2">
         {CATEGORIES.map((cat) => {
           const Icon = cat.icon
+          const href = cat.id === 'all' ? '/leaderboard' : `/k/${cat.id.replace('k/', '')}`
+          
           return (
-            <button
+            <Link
               key={cat.id}
-              onClick={() => setCategory(cat.id)}
+              href={href}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                 category === cat.id
                   ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
@@ -160,7 +162,7 @@ export function MindshareBoard() {
             >
               <Icon className="w-4 h-4" />
               {cat.label}
-            </button>
+            </Link>
           )
         })}
       </div>
