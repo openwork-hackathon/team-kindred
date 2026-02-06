@@ -6,7 +6,8 @@ import {
   Home, Compass, Flame, Trophy, Plus, Search, Bot, 
   ChevronDown, PanelLeftClose, PanelLeftOpen,
   BarChart2, Coins, Dog, BookOpen, HelpCircle,
-  ToggleLeft, Store, Key, Terminal, Brain, Shield
+  ToggleLeft, Store, Key, Terminal, Brain, Shield,
+  Target, Layers
 } from 'lucide-react'
 import { BuyToken, KindPrice } from '@/components/shared/BuyToken'
 
@@ -135,10 +136,12 @@ export function HomePage() {
 
           {/* Categories */}
           <SidebarSection title="Categories">
-            <SidebarItem icon={BarChart2} label="k/perp-dex" badge="42" iconBg="defi" />
-            <SidebarItem icon={Coins} label="k/defi" badge="128" iconBg="nft" />
-            <SidebarItem icon={Bot} label="k/agent" badge="89" badgeColor="green" iconBg="gaming" />
-            <SidebarItem icon={Dog} label="k/memecoin" badge="256" badgeColor="orange" iconBg="dao" />
+            <SidebarItem icon={Coins} label="k/defi" badge="-" iconBg="defi" />
+            <SidebarItem icon={BarChart2} label="k/perp-dex" badge="-" iconBg="nft" />
+            <SidebarItem icon={Target} label="k/prediction" badge="-" iconBg="gaming" />
+            <SidebarItem icon={Bot} label="k/ai" badge="-" badgeColor="green" iconBg="gaming" />
+            <SidebarItem icon={Dog} label="k/memecoin" badge="-" badgeColor="orange" iconBg="dao" />
+            <SidebarItem icon={Layers} label="k/infra" badge="-" iconBg="defi" />
           </SidebarSection>
 
           <div className="mx-4 my-2 border-t border-[#1f1f23]" />

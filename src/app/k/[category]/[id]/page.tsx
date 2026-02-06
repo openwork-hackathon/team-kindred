@@ -1,370 +1,158 @@
-'use client'
+import { Metadata } from 'next'
+import { prisma } from '@/lib/prisma'
+import { generateMetadata as generateSeoMetadata, generateProjectSchema, generateBreadcrumbSchema } from '@/lib/seo'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { ProjectPageContent } from './ProjectPageContent'
 
-import { useParams } from 'next/navigation'
-import Link from 'next/link'
-import Image from 'next/image'
-import { AISummaryCard } from '@/components/project/AISummaryCard'
-import { ReviewCard } from '@/components/reviews/ReviewCard'
-import { CommunityInfo } from '@/components/project/CommunityInfo'
-import { StakeVote } from '@/components/StakeVote'
-
-import { useStore, Project } from '@/lib/store'
-
-import { useState, useEffect } from 'react'
-import { analyzeProject } from '@/app/actions/analyze'
-import { findOrCreateProject } from '@/app/actions/createProject'
-import { getTokenPrice, TokenPrice } from '@/lib/coingecko'
-import { Sparkles, Users } from 'lucide-react'
-
-// Initial loading state mock
-const LOADING_PROJECT: any = { 
-  id: 'loading',
-  name: 'Analyzing...',
-  category: 'k/research',
-  aiVerdict: 'neutral',
-  aiScore: 0,
-  aiSummary: 'Calling Ma\'at for deep verification... (Checking On-Chain Data)',
-  keyPoints: ['Verifying Contract Safety...', 'Scanning Social Signals...', 'Auditing Team Background...']
-}
-
-export default function ProjectPage() {
-  const params = useParams()
-  const idRaw = Array.isArray(params.id) ? params.id[0] : params.id
-  const categoryRaw = Array.isArray(params.category) ? params.category[0] : params.category
-  const projectId = idRaw.toLowerCase()
-  const category = `k/${categoryRaw}` // Get category from URL
-
-  // Store Hooks
-  const addProject = useStore(state => state.addProject)
-  const joinCommunity = useStore(state => state.joinCommunity)
-  const leaveCommunity = useStore(state => state.leaveCommunity)
-  const communities = useStore(state => state.communities)
-  const isJoined = useStore(state => state.joinedCommunityIds.includes(projectId))
-
-  const [projectData, setProjectData] = useState<any>(null)
-  const [reviews, setReviews] = useState<any[]>([])
-  const [loadingReviews, setLoadingReviews] = useState(true)
-  const [tokenPrice, setTokenPrice] = useState<TokenPrice | null>(null)
+// Dynamic metadata generation for SEO
+export async function generateMetadata({ 
+  params 
+}: { 
+  params: Promise<{ category: string; id: string }> 
+}): Promise<Metadata> {
+  const { category, id } = await params
+  const projectId = id.toLowerCase()
   
-  // Fetch real-time price from CoinGecko
-  useEffect(() => {
-    async function fetchPrice() {
-      if (projectData?.name && projectData.name !== 'Analyzing...') {
-        const price = await getTokenPrice(projectData.name)
-        if (price) {
-          setTokenPrice(price)
+  // Try to fetch project from DB
+  let project = null
+  try {
+    project = await prisma.project.findUnique({
+      where: { address: projectId },
+      include: {
+        _count: {
+          select: { reviews: true }
         }
       }
-    }
-    fetchPrice()
-  }, [projectData?.name])
-  
-  // Fetch reviews for this project
-  useEffect(() => {
-    async function fetchReviews() {
-      try {
-        const res = await fetch(`/api/reviews?target=${projectId}`)
-        const data = await res.json()
-        setReviews(data.reviews || [])
-      } catch (error) {
-        console.error('Failed to fetch reviews:', error)
-        setReviews([])
-      } finally {
-        setLoadingReviews(false)
-      }
-    }
-    fetchReviews()
-  }, [projectId])
-  
-  useEffect(() => {
-    // Always fetch Ma'at analysis AND create project in DB if not exists
-    // Show loading state first
-    setProjectData(LOADING_PROJECT)
-    
-    findOrCreateProject(projectId).then((createResult) => {
-      if (!createResult.success || !createResult.analysis) {
-        // Fallback to direct analysis if creation failed
-        analyzeProject(projectId).then((result) => {
-          setProjectData({
-            ...LOADING_PROJECT,
-            id: projectId,
-            name: result.name,
-            ticker: result.tokenSymbol || result.name.substring(0, 4).toUpperCase(),
-            category: `k/${result.type.toLowerCase()}`,
-            aiVerdict: result.status === 'VERIFIED' ? 'bullish' : result.status === 'RISKY' ? 'bearish' : 'neutral',
-            aiScore: result.score * 20,
-            aiSummary: result.summary,
-            keyPoints: result.features,
-            riskWarnings: result.warnings,
-            audits: result.audits,
-            investors: result.investors,
-            maAtStatus: result.status,
-          })
-        })
-        return
-      }
-
-      const result = createResult.analysis
-      const fullData = {
-        ...LOADING_PROJECT,
-        id: createResult.project?.id || projectId,
-        name: result.name,
-        ticker: result.tokenSymbol || result.name.substring(0, 4).toUpperCase(),
-        category: createResult.project?.category || `k/${result.type.toLowerCase()}`,
-        price: result.tokenPrice || '-',
-        marketCap: result.tvl || '-',
-        volume24h: '-',
-        image: result.image, // Logo from CoinGecko
-        
-        aiVerdict: result.status === 'VERIFIED' ? 'bullish' : result.status === 'RISKY' ? 'bearish' : 'neutral',
-        aiScore: result.score * 20,
-        aiSummary: result.summary,
-        keyPoints: result.features,
-        
-        riskWarnings: result.warnings,
-        audits: result.audits,
-        investors: result.investors,
-        maAtStatus: result.status,
-      }
-      
-      setProjectData(fullData)
-
-      // AUTO ADD: Persist verified project to store
-      // We map the analysis result to our simple Store Project type
-      addProject({
-        id: createResult.project?.id || projectId,
-        name: result.name,
-        ticker: result.tokenSymbol || "UNK",
-        category: result.type,
-        score: result.score,
-        tvl: result.tvl,
-        reviewsCount: 0,
-        logo: result.image
-      })
     })
-  }, [projectId, addProject])
-
-  const data = projectData || LOADING_PROJECT
-
-  const handleJoin = () => {
-    if (isJoined) {
-      leaveCommunity(projectId)
-    } else {
-      joinCommunity(projectId)
-    }
+  } catch (error) {
+    console.error('Error fetching project for metadata:', error)
   }
 
+  const projectName = project?.name || id.charAt(0).toUpperCase() + id.slice(1)
+  const categoryName = category.charAt(0).toUpperCase() + category.slice(1)
+  
+  // Generate SEO-optimized metadata
+  const title = `${projectName} Review - Is ${projectName} Safe?`
+  const description = project?.aiSummary 
+    ? project.aiSummary.slice(0, 155) + '...'
+    : `Read verified reviews of ${projectName}. Community-driven ratings, security analysis, and expert opinions. Find out if ${projectName} is worth investing in.`
+
+  return generateSeoMetadata({
+    title,
+    description,
+    path: `/k/${category}/${id}`,
+    keywords: [
+      `${projectName} review`,
+      `${projectName} safe`,
+      `${projectName} scam`,
+      `${projectName} rating`,
+      `is ${projectName} legit`,
+      `${categoryName} protocol`,
+      'crypto review',
+      'defi security',
+    ],
+    type: 'article',
+  })
+}
+
+export default async function ProjectPage({ 
+  params 
+}: { 
+  params: Promise<{ category: string; id: string }> 
+}) {
+  const { category, id } = await params
+  const projectId = id.toLowerCase()
+  
+  // Fetch initial data server-side for SEO
+  let project = null
+  let reviews: any[] = []
+  let aggregateRating = null
+  
+  try {
+    const [projectData, reviewsData] = await Promise.all([
+      prisma.project.findUnique({
+        where: { address: projectId },
+      }),
+      prisma.review.findMany({
+        where: { projectAddress: projectId },
+        orderBy: { upvotes: 'desc' },
+        take: 20,
+      }),
+    ])
+    
+    project = projectData
+    reviews = reviewsData
+    
+    // Calculate aggregate rating if we have reviews
+    if (reviews.length > 0) {
+      const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0)
+      aggregateRating = {
+        ratingValue: (totalRating / reviews.length).toFixed(1),
+        ratingCount: reviews.length,
+        reviewCount: reviews.length,
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching project data:', error)
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://kindred.app'
+  const projectName = project?.name || id
+
   return (
-    <main className="min-h-screen bg-[#0a0a0b] text-white">
-      {/* Project Banner */}
-      <div className="h-48 bg-gradient-to-r from-gray-900 to-black border-b border-[#1f1f23] relative">
-        <div className="absolute bottom-0 left-0 w-full h-full bg-grid-white/[0.05] [mask-image:linear-gradient(to_bottom,transparent,black)]"></div>
-        <div className="max-w-7xl mx-auto px-4 h-full flex items-end pb-8 relative z-10">
-          <div className="flex items-center gap-6">
-            <div className="w-24 h-24 bg-[#111113] border-4 border-[#0a0a0b] rounded-2xl flex items-center justify-center text-4xl shadow-2xl relative overflow-hidden">
-               {/* Ma'at Glow Effect */}
-               {data.id === 'loading' && (
-                 <div className="absolute inset-0 bg-yellow-500/20 animate-pulse" />
-               )}
-               {data.image ? (
-                 <Image 
-                   src={data.image} 
-                   alt={data.name} 
-                   width={96} 
-                   height={96}
-                   className="absolute inset-0 w-full h-full object-contain p-2"
-                 />
-               ) : (
-                 data.name[0]?.toUpperCase() || '?'
-               )}
-            </div>
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-4xl font-bold text-white flex items-center gap-3">
-                  {data.name}
-                  {data === projectData && data.id !== 'loading' && (
-                    <span className={`px-2 py-0.5 rounded-full border text-xs font-medium flex items-center gap-1 ${
-                      data.maAtStatus === 'VERIFIED' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-                      data.maAtStatus === 'RISKY' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-                      'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-                    }`}>
-                      <Sparkles className="w-3 h-3" />
-                      Ma'at Verified: {data.maAtStatus}
-                    </span>
-                  )}
-                </h1>
-                <span className="px-3 py-1 bg-[#2a2a2e] text-gray-400 rounded-full text-xs font-medium border border-[#3f3f46]">
-                  {data.category}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-sm text-gray-400">
-                <span>{data.category}</span>
-                <span>•</span>
-                <span>Tier 1 Project</span>
-              </div>
-            </div>
+    <>
+      {/* Product Schema for rich snippets */}
+      <JsonLd 
+        data={generateProjectSchema({
+          name: projectName,
+          description: project?.aiSummary || `Reviews and analysis of ${projectName}`,
+          category: `k/${category}`,
+          address: projectId,
+          aggregateRating: aggregateRating ? {
+            ratingValue: parseFloat(aggregateRating.ratingValue),
+            ratingCount: aggregateRating.ratingCount,
+            reviewCount: aggregateRating.reviewCount,
+          } : undefined,
+          image: project?.logo || undefined,
+        })} 
+      />
+      
+      {/* Breadcrumb Schema */}
+      <JsonLd 
+        data={generateBreadcrumbSchema([
+          { name: 'Home', url: '/' },
+          { name: category.charAt(0).toUpperCase() + category.slice(1), url: `/k/${category}` },
+          { name: projectName, url: `/k/${category}/${id}` },
+        ])} 
+      />
+      
+      {/* Hidden SEO content for crawlers */}
+      <div className="sr-only">
+        <h1>{projectName} Review - Kindred Trust Platform</h1>
+        <p>
+          Read {reviews.length} verified reviews of {projectName}. 
+          {aggregateRating && ` Average rating: ${aggregateRating.ratingValue}/5 based on ${aggregateRating.ratingCount} reviews.`}
+          {project?.aiSummary && ` Summary: ${project.aiSummary}`}
+        </p>
+        {reviews.length > 0 && (
+          <div>
+            <h2>Recent Reviews</h2>
+            {reviews.slice(0, 5).map((review: any) => (
+              <article key={review.id}>
+                <p>Rating: {review.rating}/5 - {review.content.slice(0, 200)}</p>
+              </article>
+            ))}
           </div>
-          <div className="ml-auto flex gap-3">
-             <Link 
-              href="/review" 
-              className="bg-kindred-primary text-white hover:bg-orange-600 px-6 py-2.5 rounded-lg font-semibold transition flex items-center gap-2"
-            >
-              <span>Write Review</span>
-            </Link>
-            <button 
-              onClick={handleJoin}
-              className={`px-6 py-2.5 rounded-lg font-medium transition flex items-center gap-2 border ${
-                isJoined 
-                  ? 'bg-transparent border-[#2a2a2e] text-white hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400' 
-                  : 'bg-[#1a1a1d] border-[#2a2a2e] text-white hover:bg-[#2a2a2e]'
-              }`}
-            >
-              {isJoined ? 'Joined' : 'Join Community'}
-            </button>
-          </div>
-        </div>
+        )}
       </div>
-
-      <div className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
-        {/* Main Content */}
-        <div className="flex-1 max-w-4xl">
-          
-          {/* AI Analysis Section */}
-          <AISummaryCard 
-            projectName={data.name}
-            verdict={data.aiVerdict}
-            score={data.aiScore}
-            summary={data.aiSummary}
-            keyPoints={data.keyPoints}
-          />
-
-          {/* New Ma'at Auditor Section */}
-          {(data.riskWarnings?.length > 0 || data.audits?.length > 0) && (
-            <div className="mb-6 p-4 rounded-xl bg-[#1a1a1d] border border-yellow-500/20">
-              <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
-                ⚠️ Ma'at Risk Analysis
-              </h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                 {data.riskWarnings?.length > 0 && (
-                   <div>
-                     <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Warnings</h4>
-                     <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                       {data.riskWarnings.map((w: string, i: number) => (
-                         <li key={i}>{w}</li>
-                       ))}
-                     </ul>
-                   </div>
-                 )}
-                 {data.audits?.length > 0 && (
-                   <div>
-                     <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Security Audits</h4>
-                     <ul className="space-y-2">
-                       {data.audits.map((a: any, i: number) => (
-                         <li key={i} className="flex items-center justify-between text-sm bg-black/20 p-2 rounded">
-                           <span className="text-green-400 font-medium">{a.auditor}</span>
-                           <span className="text-gray-500 text-xs">{a.date || 'Verified'}</span>
-                         </li>
-                       ))}
-                     </ul>
-                   </div>
-                 )}
-              </div>
-            </div>
-          )}
-
-          {/* Discussion / Reviews */}
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-bold">Community Discussion</h2>
-            <div className="flex gap-2">
-              <button className="px-3 py-1 bg-[#1a1a1d] border border-[#2a2a2e] rounded-lg text-sm text-white">Top</button>
-              <button className="px-3 py-1 text-gray-500 hover:text-white text-sm">New</button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {loadingReviews ? (
-              <div className="text-center py-8 text-gray-500">Loading reviews...</div>
-            ) : reviews.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">No reviews yet. Be the first!</div>
-            ) : (
-              reviews.map((review: any) => (
-                <div key={review.id} className="flex gap-4 bg-[#111113] border border-[#1f1f23] rounded-xl p-4">
-                  {/* Vote Column (Interactive) */}
-                  <StakeVote
-                    reviewId={review.id}
-                    initialUpvotes={review.upvotes}
-                    initialDownvotes={review.downvotes}
-                    totalStaked={review.stakeAmount}
-                    earlyBird={review.upvotes + review.downvotes < 20}
-                  />
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Header */}
-                    <div className="flex items-center gap-2 text-xs text-[#6b6b70] mb-2 flex-wrap">
-                      <span>by {review.reviewerAddress.slice(0, 6)}...{review.reviewerAddress.slice(-4)}</span>
-                      <span>•</span>
-                      <span>{new Date(review.createdAt).toLocaleDateString()}</span>
-                    </div>
-
-                    {/* Rating */}
-                    <div className="flex items-center gap-1 mb-3">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span key={star} className={star <= review.rating ? 'text-yellow-400' : 'text-[#2a2a2e]'}>
-                          ★
-                        </span>
-                      ))}
-                      <span className="text-sm text-[#6b6b70] ml-1">{review.rating}/5</span>
-                    </div>
-
-                    {/* Content (Full text, not truncated) */}
-                    <p className="text-[#adadb0] text-sm leading-relaxed whitespace-pre-wrap">
-                      {review.content}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-        </div>
-
-        {/* Right Sidebar */}
-        <div className="hidden xl:block">
-           <CommunityInfo category={category} />
-           
-           {/* Project Stats Widget */}
-           <div className="w-80 mt-6 bg-[#111113] border border-[#1f1f23] rounded-xl p-4">
-              <h3 className="font-semibold mb-4 text-sm text-gray-400 uppercase">Market Stats</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">Price</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono">{tokenPrice?.price || data.price || '-'}</span>
-                    {tokenPrice?.priceChange24h && (
-                      <span className={`text-xs ${parseFloat(tokenPrice.priceChange24h) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {parseFloat(tokenPrice.priceChange24h) >= 0 ? '↑' : '↓'}{tokenPrice.priceChange24h}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">24h Vol</span>
-                  <span className="font-mono">{tokenPrice?.volume24h || data.volume24h || '-'}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">Market Cap</span>
-                  <span className="font-mono">{tokenPrice?.marketCap || data.marketCap || '-'}</span>
-                </div>
-              </div>
-              {tokenPrice && (
-                <div className="mt-3 pt-3 border-t border-[#1f1f23]">
-                  <span className="text-[10px] text-gray-600">via CoinGecko • Live</span>
-                </div>
-              )}
-           </div>
-        </div>
-      </div>
-    </main>
+      
+      {/* Client Component for Interactive Content */}
+      <ProjectPageContent 
+        projectId={projectId}
+        category={category}
+        initialProject={project}
+        initialReviews={reviews}
+      />
+    </>
   )
 }

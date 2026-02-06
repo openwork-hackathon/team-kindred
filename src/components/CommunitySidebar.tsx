@@ -2,7 +2,7 @@
 
 import React from 'react'
 
-type Category = 'all' | 'k/defi' | 'k/perp-dex' | 'k/memecoin' | 'k/ai'
+type Category = 'all' | 'k/defi' | 'k/perp-dex' | 'k/prediction' | 'k/ai' | 'k/memecoin' | 'k/infra'
 
 interface CommunitySidebarProps {
   selectedCategory: Category
@@ -13,8 +13,10 @@ const CATEGORIES: { value: Category; label: string; icon: string }[] = [
   { value: 'all', label: 'All Communities', icon: '🏠' },
   { value: 'k/defi', label: 'DeFi', icon: '🏦' },
   { value: 'k/perp-dex', label: 'Perp DEX', icon: '📈' },
-  { value: 'k/memecoin', label: 'Memecoins', icon: '🐸' },
+  { value: 'k/prediction', label: 'Prediction', icon: '🎯' },
   { value: 'k/ai', label: 'AI Agents', icon: '🤖' },
+  { value: 'k/memecoin', label: 'Memecoins', icon: '🐸' },
+  { value: 'k/infra', label: 'Infrastructure', icon: '🔧' },
 ]
 
 export function CommunitySidebar({ selectedCategory, onSelectCategory }: CommunitySidebarProps) {

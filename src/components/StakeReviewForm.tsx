@@ -24,8 +24,10 @@ interface ReviewFormData {
 const CATEGORIES = [
   { value: 'k/defi', label: 'DeFi', icon: '🏦' },
   { value: 'k/perp-dex', label: 'Perp DEX', icon: '📈' },
-  { value: 'k/memecoin', label: 'Memecoin', icon: '🐕' },
+  { value: 'k/prediction', label: 'Prediction', icon: '🎯' },
   { value: 'k/ai', label: 'AI', icon: '🤖' },
+  { value: 'k/memecoin', label: 'Memecoin', icon: '🐕' },
+  { value: 'k/infra', label: 'Infrastructure', icon: '🔧' },
 ]
 
 const STAKE_TIERS = [
