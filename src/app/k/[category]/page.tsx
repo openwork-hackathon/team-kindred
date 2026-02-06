@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation'
 import { CategoryFeed } from '@/components/CategoryFeed'
 import { Header } from '@/components/Header'
-import { CommunityInfo } from '@/components/CommunityInfo'
+import { CommunityInfo } from '@/components/project/CommunityInfo'
 
 const CATEGORY_INFO: Record<string, { icon: string; description: string }> = {
   'defi': { icon: '🏦', description: 'DeFi protocols - Lending, DEXs, Yield' },

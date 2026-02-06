@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ReviewCard } from '@/components/ReviewCard'
-import { CommunityInfo } from '@/components/CommunityInfo'
+import { CommunityInfo } from '@/components/project/CommunityInfo'
 
 type Category = 'all' | 'k/defi' | 'k/perp-dex' | 'k/memecoin' | 'k/ai'
 
