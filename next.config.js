@@ -42,6 +42,12 @@ const nextConfig = {
         hostname: 'lh3.googleusercontent.com',
         pathname: '/**',
       },
+      // Google Places API photos
+      {
+        protocol: 'https',
+        hostname: 'places.googleapis.com',
+        pathname: '/**',
+      },
     ],
   },
   
