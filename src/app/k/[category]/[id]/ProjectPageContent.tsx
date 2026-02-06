@@ -49,10 +49,10 @@ export function ProjectPageContent({
   const [imageError, setImageError] = useState(false)
   const [bannerError, setBannerError] = useState(false)
   
-  // Fetch real-time price from CoinGecko
+  // Fetch real-time price from CoinGecko (only for crypto projects, not restaurants)
   useEffect(() => {
     async function fetchPrice() {
-      if (projectData?.name && projectData.name !== 'Analyzing...') {
+      if (category !== 'gourmet' && projectData?.name && projectData.name !== 'Analyzing...') {
         const price = await getTokenPrice(projectData.name)
         if (price) {
           setTokenPrice(price)
@@ -60,7 +60,7 @@ export function ProjectPageContent({
       }
     }
     fetchPrice()
-  }, [projectData?.name])
+  }, [category, projectData?.name])
   
   // Fetch reviews if not provided initially
   useEffect(() => {
