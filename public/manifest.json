@@ -1,0 +1,25 @@
+{
+  "name": "Kindred - Trust Layer for Everything",
+  "short_name": "Kindred",
+  "description": "The trust layer for everything. Stake tokens to review, predict project rankings, build reputation, and earn rewards.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ],
+  "categories": ["finance", "social", "productivity"],
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en"
+}
