@@ -105,35 +105,6 @@ export function HomePage() {
 
           <div className="mx-4 my-2 border-t border-[#1f1f23]" />
 
-          {/* Agent Hub */}
-          <SidebarSection title="🤖 Agent Hub">
-            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg text-[#adadb0] hover:bg-[#1a1a1d] cursor-pointer transition-colors">
-              <div className="flex items-center gap-3">
-                <ToggleLeft className="w-4.5 h-4.5" />
-                <span className="text-sm">Agent Mode</span>
-              </div>
-              <div 
-                onClick={(e) => { e.stopPropagation(); setAgentMode(!agentMode) }}
-                className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${agentMode ? 'bg-green-500' : 'bg-[#2a2a2e]'}`}
-              >
-                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${agentMode ? 'translate-x-5' : 'translate-x-0.5'}`} />
-              </div>
-            </div>
-            <SidebarItem icon={Bot} label="My Agents" badge="3" badgeColor="green" />
-            <SidebarItem icon={Store} label="Agent Marketplace" />
-            <SidebarItem icon={Key} label="API Keys" />
-            <SidebarItem icon={Terminal} label="Agent Logs" />
-          </SidebarSection>
-
-          {/* Active Agents */}
-          <SidebarSection title="Active Agents">
-            <AgentItem name="ReviewBot" status="online" icon={Bot} color="green" />
-            <AgentItem name="AnalyzerAI" status="online" icon={Brain} color="purple" />
-            <AgentItem name="AuditAgent" status="offline" icon={Shield} color="gray" />
-          </SidebarSection>
-
-          <div className="mx-4 my-2 border-t border-[#1f1f23]" />
-
           {/* Categories */}
           <SidebarSection title="Categories">
             <SidebarItem icon={BarChart2} label="k/perp-dex" badge="42" iconBg="defi" />
