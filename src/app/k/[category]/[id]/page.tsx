@@ -236,6 +236,8 @@ export default function ProjectPage() {
             score={data.aiScore}
             summary={data.aiSummary}
             keyPoints={data.keyPoints}
+            reviewCount={reviews.length}
+            totalStaked={reviews.reduce((sum, r) => sum + parseFloat(r.stakeAmount || '0'), 0).toString()}
           />
 
           {/* New Ma'at Auditor Section */}
