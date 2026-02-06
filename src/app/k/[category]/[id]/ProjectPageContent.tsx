@@ -103,6 +103,8 @@ export function ProjectPageContent({
             id: projectId,
             name: result.restaurantName || projectId,
             category: 'k/gourmet',
+            image: result.photos?.[0], // Use first photo as logo
+            bannerImage: result.photos?.[1] || result.photos?.[0], // Use second photo as banner (or first if only one)
             aiVerdict: result.status === 'PURE' ? 'bullish' : result.status === 'DECEPTIVE' ? 'bearish' : 'neutral',
             aiScore: result.score * 20,
             aiSummary: result.summary,
