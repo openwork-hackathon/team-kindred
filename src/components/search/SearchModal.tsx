@@ -125,7 +125,9 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       
       if (result.success && result.project) {
         // Navigate to the newly created/found project page
-        router.push(`/${result.project.category}/${result.project.id}`)
+        const targetUrl = `/${result.project.category}/${result.project.id}`
+        console.log('[SearchModal] Navigating to:', targetUrl, 'Category:', result.project.category)
+        router.push(targetUrl)
         onClose()
       } else {
         // Fall back to basic search with analyze flag

@@ -90,6 +90,7 @@ export async function findOrCreateProject(query: string): Promise<CreateProjectR
     // 3. Create project in database
     const address = generateProjectAddress(analysis.name || query)
     const category = mapTypeToCategory(analysis.type)
+    console.log(`[Kindred] Analysis type: "${analysis.type}" -> Category: "${category}"`)
     
     const newProject = await prisma.project.create({
       data: {
