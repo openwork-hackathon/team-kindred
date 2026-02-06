@@ -9,6 +9,7 @@ import {
   ToggleLeft, Store, Key, Terminal, Brain, Shield
 } from 'lucide-react'
 import { BuyToken, KindPrice } from './BuyToken'
+import { LatestReviews } from './home/LatestReviews'
 
 export function HomePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -206,46 +207,8 @@ export function HomePage() {
             <StatCard label="Trust Score Avg" value="87.3" change="" purple />
           </div>
 
-          {/* Recent Reviews */}
-          <section>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold">Recent Reviews</h2>
-              <button className="flex items-center gap-1.5 px-4 py-2 border border-[#2a2a2e] rounded-md text-sm text-[#adadb0] hover:bg-[#111113] hover:text-white transition-all">
-                View All
-                <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <ReviewCard 
-                project="Hyperliquid"
-                rating={4.8}
-                reviewer="0x7a3d...8f2e"
-                content="Excellent perp DEX with deep liquidity. The order book model provides tight spreads and the UI is intuitive. However, withdrawal times could be improved."
-                upvotes={234}
-                comments={18}
-                staked="5,000"
-              />
-              <ReviewCard 
-                project="Jupiter"
-                rating={4.5}
-                reviewer="0x9b2c...4a1f"
-                content="Best aggregator on Solana. The DCA feature is a game-changer for accumulating positions. Integration with limit orders makes it a one-stop shop."
-                upvotes={189}
-                comments={12}
-                staked="3,200"
-              />
-              <ReviewCard 
-                project="Uniswap v4"
-                rating={4.9}
-                reviewer="0x3e8f...7c2d"
-                content="Revolutionary hooks system opens up endless possibilities. Gas optimization is noticeable. The singleton contract architecture is elegant."
-                upvotes={312}
-                comments={24}
-                staked="8,500"
-              />
-            </div>
-          </section>
+          {/* Latest Reviews - Real Data */}
+          <LatestReviews />
         </main>
       </div>
     </div>
