@@ -19,6 +19,12 @@ const COMMUNITY_DATA: Record<string, { title: string; description: string; membe
     members: '4.5k',
     online: '2.1M Staked'
   },
+  'k/dex': {
+    title: 'k/DEX',
+    description: 'Swap, pool, and provide liquidity. The engine of DeFi.',
+    members: '8.1k',
+    online: '5.4M Staked'
+  },
   'k/perp-dex': {
     title: 'k/PerpDEX',
     description: 'Leverage trading, funding rates, and exchange reviews. Where the degens live.',
@@ -36,6 +42,18 @@ const COMMUNITY_DATA: Record<string, { title: string; description: string; membe
     description: 'Artificial Intelligence agents and protocols. The future is autonomous.',
     members: '2.1k',
     online: '900k Staked'
+  },
+  'k/restaking': {
+    title: 'k/Restaking',
+    description: 'Shared security, liquid restaking tokens, and yield layering. Maximum efficiency.',
+    members: '1.5k',
+    online: '1.2M Staked'
+  },
+  'k/infra': {
+    title: 'k/Infra',
+    description: 'The backbone of Web3. L1s, L2s, bridges, and oracles.',
+    members: '5.2k',
+    online: '3.1M Staked'
   }
 }
 

@@ -74,16 +74,14 @@ export function MindshareBoard() {
   // Use global dynamic store
   const projects = useStore(state => state.projects)
 
-  // Map store projects to UI format (if needed) or use directly
-  // The store uses 'score' as main metric, we can map to mindshare for UI compat or rename
   const uiProjects = projects.map((p, index) => ({
     ...p,
-    rank: index + 1, // Fix missing rank
-    mindshare: p.score * 20, // Map 5.0 score to 100% scale for visualization if needed, or just use raw
-    mindshareChange: 0, // No historical data in lightweight store yet
-    staked: 0, // Mock for now
+    rank: index + 1,
+    mindshare: p.score * 20,
+    mindshareChange: 0,
+    staked: 0,
     sentiment: p.score * 20,
-    color: '#8b5cf6' // Default purple
+    color: '#8b5cf6'
   }))
 
   const filtered = category === 'all' 

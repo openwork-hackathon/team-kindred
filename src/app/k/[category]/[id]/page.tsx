@@ -9,7 +9,7 @@ import { CommunityInfo } from '@/components/project/CommunityInfo'
 import { useStore, Project } from '@/lib/store'
 
 import { useState, useEffect } from 'react'
-import { analyzeProject } from '@/app/actions/analyze'
+import { analyzeProject, refreshProjectAnalysis } from '@/app/actions/analyze'
 import { getTokenPrice, TokenPrice } from '@/lib/coingecko'
 import { Sparkles, Users } from 'lucide-react'
 
@@ -73,47 +73,53 @@ export default function ProjectPage() {
   }, [projectId])
   
   useEffect(() => {
+    // 1. Immediate Render: Use verified data from local store if available (Optimistic UI)
     if (storedProject) {
-      // Use verified data from store if available
-      setProjectData({
+      setProjectData((prev: any) => ({
+         ...prev,
          ...storedProject,
-         // Map store data back to UI format expected by this page's legacy types
+         category: storedProject.category.startsWith('k/') ? storedProject.category : `k/${storedProject.category.toLowerCase()}`,
          aiVerdict: storedProject.score >= 4 ? 'bullish' : storedProject.score <= 2.5 ? 'bearish' : 'neutral',
          aiScore: storedProject.score * 20,
-         keyPoints: [], // storedProject in store.ts might need expanding to hold these if we want to persist details
-         // For now, re-fetching deep details or assuming lightweight store
-      })
-      // If store data is lightweight, we might still want to trigger deep analysis if missing details?
-      // For now, trust store.
-    } else {
-      // Trigger "Ma'at" Analysis
-      setProjectData(LOADING_PROJECT)
-      analyzeProject(projectId).then((result) => {
-        const fullData = {
-          ...LOADING_PROJECT,
-          id: projectId,
-          name: result.name,
-          ticker: result.tokenSymbol || result.name.substring(0, 4).toUpperCase(),
-          category: `k/${result.type.toLowerCase()}`,
-          price: result.tokenPrice || '-',
-          marketCap: result.tvl || '-',
-          volume24h: '-',
-          
-          aiVerdict: result.status === 'VERIFIED' ? 'bullish' : result.status === 'RISKY' ? 'bearish' : 'neutral',
-          aiScore: result.score * 20,
-          aiSummary: result.summary,
-          keyPoints: result.features,
-          
-          riskWarnings: result.warnings,
-          audits: result.audits,
-          investors: result.investors,
-          maAtStatus: result.status,
-        }
-        
-        setProjectData(fullData)
+         // Keep existing summary if we have it (from previous fetch), otherwise placeholder while loading
+         aiSummary: prev?.aiSummary || 'Retrieving latest Ma\'at analysis...',
+         keyPoints: prev?.keyPoints || [],
+      }))
+    } else if (!projectData) {
+       setProjectData(LOADING_PROJECT)
+    }
 
-        // AUTO ADD: Persist verified project to store
-        // We map the analysis result to our simple Store Project type
+    // 2. Background Fetch: Always get full rich data (Summary, Audits, News) from Ma'at Server (DB Cache)
+    // This allows us to have instant navigation + rich data eventually
+    const fetcher = projectData?.aiSummary ? analyzeProject : refreshProjectAnalysis
+    
+    analyzeProject(projectId).then((result) => {
+      console.log('Ma\'at Analysis Result:', result) // Debug log
+      const fullData = {
+        // Ensure we don't overwrite with 'loading' state if we have it
+        id: projectId,
+        name: result.name,
+        ticker: result.tokenSymbol || result.name.substring(0, 4).toUpperCase(),
+        category: `k/${result.type.toLowerCase() === 'restaking' ? 'restaking' : result.type.toLowerCase()}`,
+        price: result.tokenPrice || '-',
+        marketCap: result.tvl || '-',
+        volume24h: '-',
+        
+        aiVerdict: result.status === 'VERIFIED' ? 'bullish' : result.status === 'RISKY' ? 'bearish' : 'neutral',
+        aiScore: result.score * 20,
+        aiSummary: result.summary, // NOW we get the real summary from DB
+        keyPoints: result.features,
+        
+        riskWarnings: result.warnings,
+        audits: result.audits,
+        investors: result.investors,
+        maAtStatus: result.status,
+      }
+      
+      setProjectData(fullData)
+
+      // Sync latest server score back to local store if different
+      if (!storedProject || storedProject.score !== result.score) {
         addProject({
           id: projectId,
           name: result.name,
@@ -121,14 +127,26 @@ export default function ProjectPage() {
           category: result.type,
           score: result.score,
           tvl: result.tvl,
-          reviewsCount: 0,
+          reviewsCount: storedProject?.reviewsCount || 0, // Persist review count
           logo: undefined
         })
-      })
-    }
-  }, [projectId, storedProject, addProject])
+      }
+    }).catch(err => {
+      console.error("Analysis Failed:", err)
+      setProjectData((prev: any) => ({
+        ...prev,
+        aiSummary: "Unable to retrieve analysis at this time. Please check your connection or try again later.",
+        aiVerdict: 'neutral',
+        keyPoints: ["Connection Error", "Please Retry"]
+      }))
+    })
+  }, [projectId]) // Removed storedProject from dependency to prevent infinite loop if we update it inside
 
   const data = projectData || LOADING_PROJECT
+  // Ensure category is always k/ prefixed for UI components
+  if (data && data.category && !data.category.startsWith('k/')) {
+    data.category = `k/${data.category.toLowerCase()}`
+  }
 
   const handleJoin = () => {
     if (isJoined) {

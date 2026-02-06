@@ -1,11 +1,52 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { Trophy, Star, Coins, FileText, TrendingUp, Award } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from './ui'
 
+interface UserStats {
+  trustScore: number
+  totalReviews: number
+  kindEarned: string
+  kindStaked: string
+  rank: number
+  upvotes: number
+}
+
+interface Activity {
+  type: 'review' | 'upvote' | 'badge'
+  text: string
+  time: string
+  reward?: string
+}
+
 export function UserDashboard() {
   const { address, isConnected } = useAccount()
+  const [stats, setStats] = useState<UserStats>({ trustScore: 0, totalReviews: 0, kindEarned: '0', kindStaked: '0', rank: 0, upvotes: 0 })
+  const [activities, setActivities] = useState<Activity[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setLoading(false)
+      return
+    }
+    async function fetchDashboard() {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/user/dashboard?address=${address}`)
+        const data = await res.json()
+        if (data.stats) setStats(data.stats)
+        if (data.activities) setActivities(data.activities)
+      } catch (error) {
+        console.error('Failed to fetch dashboard:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchDashboard()
+  }, [isConnected, address])
 
   if (!isConnected) {
     return (
@@ -16,16 +57,6 @@ export function UserDashboard() {
         </div>
       </Card>
     )
-  }
-
-  // Mock data - replace with real API calls
-  const stats = {
-    trustScore: 87,
-    totalReviews: 24,
-    kindEarned: '1,250',
-    kindStaked: '500',
-    rank: 142,
-    upvotes: 1893,
   }
 
   return (
@@ -85,23 +116,19 @@ export function UserDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <ActivityItem 
-              type="review"
-              text="Reviewed Hyperliquid"
-              time="2 hours ago"
-              reward="+15 $KIND"
-            />
-            <ActivityItem 
-              type="upvote"
-              text="Your Jupiter review got 12 upvotes"
-              time="5 hours ago"
-              reward="+6 $KIND"
-            />
-            <ActivityItem 
-              type="badge"
-              text="Earned 'DeFi Expert' badge"
-              time="1 day ago"
-            />
+            {activities.length === 0 ? (
+              <p className="text-sm text-[#6b6b70] py-4 text-center">No recent activity</p>
+            ) : (
+              activities.map((activity, i) => (
+                <ActivityItem
+                  key={i}
+                  type={activity.type}
+                  text={activity.text}
+                  time={activity.time}
+                  reward={activity.reward}
+                />
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

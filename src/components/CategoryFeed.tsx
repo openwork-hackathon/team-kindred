@@ -24,13 +24,22 @@ interface Review {
   createdAt: string
 }
 
-interface CategoryFeedProps {
-  category: string
-  categoryIcon: string
-  categoryDescription: string
+const CATEGORY_INFO: Record<string, { icon: string; description: string }> = {
+  'k/defi': { icon: '🏦', description: 'DeFi protocols - Lending, DEXs, Yield' },
+  'k/perp-dex': { icon: '📈', description: 'Perpetual DEXs - Derivatives trading' },
+  'k/memecoin': { icon: '🐕', description: 'Memecoins - The degen corner' },
+  'k/ai': { icon: '🤖', description: 'AI projects - ML, Agents, Data' },
+  'k/all': { icon: '🌐', description: 'All categories' },
 }
 
-export function CategoryFeed({ category, categoryIcon, categoryDescription }: CategoryFeedProps) {
+interface CategoryFeedProps {
+  category: string
+}
+
+export function CategoryFeed({ category }: CategoryFeedProps) {
+  const info = CATEGORY_INFO[category] || { icon: '📁', description: 'Community reviews' }
+  const categoryIcon = info.icon
+  const categoryDescription = info.description
   const [sortBy, setSortBy] = useState<SortOption>('hot')
   const [showFilters, setShowFilters] = useState(false)
   const [reviews, setReviews] = useState<Review[]>([])

@@ -41,7 +41,7 @@ interface AppState {
   communities: Community[]
   
   // User State
-  userStakedBalance: number // Mock $OPENWORK balance
+  userStakedBalance: number
   joinedCommunityIds: string[]
 
   // Loading State
@@ -66,10 +66,10 @@ interface AppState {
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
-      projects: [], // Start empty per user request (remove hardcoded)
+      projects: [],
       reviews: [],
       communities: [],
-      userStakedBalance: 1000, // Give user some initial mock tokens to test staking
+      userStakedBalance: 0,
       joinedCommunityIds: [],
       loadingOperations: {},
 

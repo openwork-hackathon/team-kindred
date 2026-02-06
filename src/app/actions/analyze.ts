@@ -11,7 +11,7 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
 export interface Web3ProjectResult {
   name: string
-  type: 'DEX' | 'DeFi' | 'NFT' | 'Infrastructure' | 'Mobile' | 'AI' | 'Meme' | 'Other'
+  type: 'DEX' | 'DeFi' | 'NFT' | 'Infrastructure' | 'Mobile' | 'AI' | 'Meme' | 'Restaking' | 'Other'
   chain: string[]
   score: number
   status: 'VERIFIED' | 'UNSTABLE' | 'RISKY' // Ma'at Status
@@ -145,7 +145,7 @@ CRITICAL RULES:
 RETURN JSON FORMAT ONLY:
 {
   "name": "Project Name",
-  "type": "DEX|DeFi|NFT|Infrastructure|Other",
+  "type": "DEX|DeFi|NFT|Infrastructure|Restaking|AI|Meme|Other",
   "chain": ["BNB Chain", "Ethereum"],
   "score": 0.0-5.0,
   "status": "VERIFIED|UNSTABLE|RISKY",

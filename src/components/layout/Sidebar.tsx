@@ -12,16 +12,12 @@ import {
   Store,
   Key,
   Terminal,
-  BarChart2,
-  Coins,
-  Dog,
   BookOpen,
   ShieldCheck,
   HelpCircle,
   ChevronDown,
   Plus,
   PanelLeftClose,
-  Settings,
   ToggleLeft,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -146,9 +142,6 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             >
               <Bot className="w-[18px] h-[18px]" />
               <span>My Agents</span>
-              <span className="ml-auto px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-full">
-                3
-              </span>
             </Link>
             <Link
               href="/marketplace"
@@ -189,31 +182,8 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
 
         {openSections["active-agents"] && (
           <div className="flex flex-col gap-1 px-4">
-            <div className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-[#ffffff08] cursor-pointer transition-colors">
-              <div className="w-6 h-6 rounded flex items-center justify-center bg-green-500/20 text-green-500">
-                <Bot className="w-3 h-3" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[13px] text-[#adadb0] font-medium">
-                  ReviewBot
-                </span>
-                <span className="text-[10px] text-green-500 font-medium">
-                  ● Active
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-[#ffffff08] cursor-pointer transition-colors">
-              <div className="w-6 h-6 rounded flex items-center justify-center bg-purple-500/20 text-purple-500">
-                <Settings className="w-3 h-3" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[13px] text-[#adadb0] font-medium">
-                  AnalyzerAI
-                </span>
-                <span className="text-[10px] text-green-500 font-medium">
-                  ● Active
-                </span>
-              </div>
+            <div className="px-2 py-2 text-xs text-[#6b6b70]">
+              No active agents
             </div>
           </div>
         )}
@@ -283,43 +253,6 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                 Search projects to add communities...
               </div>
             )}
-            
-            <Link
-              href="/leaderboard?category=k/perp-dex"
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0] border-l-[3px] border-transparent hover:bg-purple-500/5 hover:text-white transition-colors"
-            >
-              <div className="w-7 h-7 rounded-md bg-purple-500/15 text-purple-500 flex items-center justify-center">
-                <BarChart2 className="w-3.5 h-3.5" />
-              </div>
-              <span>k/perp-dex</span>
-              <span className="ml-auto px-2 py-0.5 bg-[#2a2a2e] text-[#adadb0] text-[10px] font-bold rounded-full">
-                42
-              </span>
-            </Link>
-            <Link
-              href="/leaderboard?category=k/defi"
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0] border-l-[3px] border-transparent hover:bg-purple-500/5 hover:text-white transition-colors"
-            >
-              <div className="w-7 h-7 rounded-md bg-pink-500/15 text-pink-500 flex items-center justify-center">
-                <Coins className="w-3.5 h-3.5" />
-              </div>
-              <span>k/defi</span>
-              <span className="ml-auto px-2 py-0.5 bg-[#2a2a2e] text-[#adadb0] text-[10px] font-bold rounded-full">
-                128
-              </span>
-            </Link>
-            <Link
-              href="/leaderboard?category=k/ai"
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0] border-l-[3px] border-transparent hover:bg-purple-500/5 hover:text-white transition-colors"
-            >
-              <div className="w-7 h-7 rounded-md bg-green-500/15 text-green-500 flex items-center justify-center">
-                <Bot className="w-3.5 h-3.5" />
-              </div>
-              <span>k/agent</span>
-              <span className="ml-auto px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-full">
-                89
-              </span>
-            </Link>
           </div>
         )}
       </div>

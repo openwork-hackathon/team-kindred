@@ -24,7 +24,9 @@ export function AISummaryCard({ projectName, verdict, score, summary, keyPoints 
           </div>
           <div>
             <h2 className="font-bold text-white">AnalyzerAI Verdict</h2>
-            <div className="text-xs text-purple-300">Analysis based on 145 verified reviews</div>
+            <div className="text-xs text-purple-300">
+               Analysis based on {summary && summary.length > 200 ? 'deep research' : 'multiple sources'}
+            </div>
           </div>
         </div>
         <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
@@ -82,7 +84,7 @@ export function AISummaryCard({ projectName, verdict, score, summary, keyPoints 
             
             <div className="flex justify-between text-sm mt-2">
               <span className="text-gray-500">Volume</span>
-              <span className="text-white">$1.2M Staked</span>
+              <span className="text-white">-</span>
             </div>
           </div>
         </div>
