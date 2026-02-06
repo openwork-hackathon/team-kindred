@@ -96,6 +96,7 @@ export async function findOrCreateProject(query: string): Promise<CreateProjectR
         address,
         name: analysis.name || query,
         description: analysis.summary,
+        image: analysis.image, // Logo from CoinGecko
         category,
         website: analysis.website,
         avgRating: analysis.score,

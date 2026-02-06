@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { AISummaryCard } from '@/components/project/AISummaryCard'
 import { ReviewCard } from '@/components/reviews/ReviewCard'
 import { CommunityInfo } from '@/components/project/CommunityInfo'
@@ -86,6 +87,7 @@ export default function ProjectPage() {
           price: result.tokenPrice || '-',
           marketCap: result.tvl || '-',
           volume24h: '-',
+          image: result.image, // Logo from CoinGecko
           
           aiVerdict: result.status === 'VERIFIED' ? 'bullish' : result.status === 'RISKY' ? 'bearish' : 'neutral',
           aiScore: result.score * 20,
@@ -137,7 +139,17 @@ export default function ProjectPage() {
                {data.id === 'loading' && (
                  <div className="absolute inset-0 bg-yellow-500/20 animate-pulse" />
                )}
-               {data.name[0]?.toUpperCase() || '?'}
+               {data.image ? (
+                 <Image 
+                   src={data.image} 
+                   alt={data.name} 
+                   width={96} 
+                   height={96}
+                   className="w-full h-full object-cover"
+                 />
+               ) : (
+                 data.name[0]?.toUpperCase() || '?'
+               )}
             </div>
             <div>
               <div className="flex items-center gap-3 mb-1">

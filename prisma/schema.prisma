@@ -52,6 +52,7 @@ model Project {
   address         String    @unique // contract/protocol address
   name            String
   description     String?
+  image           String?   // Logo URL from CoinGecko
   website         String?
   category        String    @default("defi") // k/defi, k/perp-dex, k/memecoin, k/ai
   
