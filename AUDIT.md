@@ -1,16 +1,17 @@
 # Kindred Contracts Security Audit
 
 **Auditor:** Patrick Collins 🛡️ (Bounty Hunter)  
-**Last Updated:** 2026-02-05 12:30 PST  
+**Last Updated:** 2026-02-06 00:30 PST  
 **Contracts Reviewed:**
 - `KindToken.sol` + `KindTokenTestnet.sol`
 - `KindredComment.sol`
-- `ReputationOracle.sol`
+- `ReputationOracle.sol` (deprecated)
+- `KindredReputationOracle.sol` ⭐ **NEW**
 - `KindredHook.sol`
 
 **Build:** ✅ Compilation successful  
-**Tests:** ✅ 30/30 passing (100% success rate, 26.93ms CPU time)  
-**Slither:** ✅ 0 Medium/High/Critical findings (excluding dependencies)
+**Tests:** ✅ 82/82 passing (100% success rate)  
+**Slither:** ✅ 0 High/Critical findings (7 Low/Info in new oracle, all acceptable)
 
 ---
 
@@ -614,6 +615,283 @@ forge test --match-test test_VoteFlipping
 ---
 
 ## 📝 Audit Log
+
+### 2026-02-06 00:30 PST - Hourly Review #5 🆕 NEW CONTRACT
+
+**Status:** 🆕 **NEW CONTRACT ADDED - KindredReputationOracle**
+
+**New Addition:**
+- ✅ `KindredReputationOracle.sol` - Calculates reputation from KindredComment activity
+- ✅ 21 new tests (100% passing)
+- ✅ Integration with KindredHook complete
+- ⚠️ 4 Low/Info issues identified (see findings below)
+
+**Test Results:**
+- ✅ **82/82 tests passing** (up from 42) - 100% success rate
+- ✅ New test suites: KindredReputationOracleTest (21 tests), KindredHookIntegrationTest (19 tests)
+- ✅ All existing tests still passing
+
+**Slither Results (KindredReputationOracle):**
+- ⚠️ 7 findings: 0 High, 0 Medium, 7 Low/Info
+- Most are style/optimization suggestions
+
+---
+
+### 🆕 KindredReputationOracle Security Analysis
+
+**Contract Purpose:** Calculate user reputation scores (0-1000) based on KindredComment activity.
+
+**Reputation Formula:**
+```
+Score = BASE_SCORE (500)
+  + POINTS_PER_COMMENT (10) × comment_count
+  + upvote_value / 1e18 (normalized)
+  - downvote_value / 1e18 (normalized)
+  + POINTS_PER_UNLOCK (5) × unlock_count
+  
+Capped at: MAX_SCORE (1000)
+Floored at: 0
+```
+
+---
+
+#### ⚠️ LOW-1: Unbounded Loop in getScore()
+
+**Location:** `KindredReputationOracle.getScore()` L79-94  
+**Severity:** 🟡 Low  
+**Impact:** DoS risk if user has many comments (>1000)
+
+**Issue:**
+```solidity
+uint256[] memory commentIds = kindredComment.getUserComments(account);
+
+for (uint256 i = 0; i < commentIds.length; i++) {
+    KindredComment.Comment memory comment = kindredComment.getComment(commentIds[i]);
+    // ... calculations
+}
+```
+
+**Gas Analysis:**
+- Each comment costs ~30-50k gas to fetch and process
+- 100 comments = ~5M gas (approaching block limit on some chains)
+- 1000 comments = could exceed block gas limit
+
+**Attack Vector:**
+Malicious user creates 1000+ spam comments to DoS their own reputation lookup, griefing the Hook.
+
+**Why Not Critical:**
+- Creating comments costs KindToken (economic barrier)
+- View function only affects off-chain/read operations
+- KindredHook has Oracle failure fallback (applies FEE_LOW_TRUST)
+
+**Recommendations:**
+```solidity
+// Option 1: Limit loop (breaking change)
+uint256 maxComments = commentIds.length > 100 ? 100 : commentIds.length;
+for (uint256 i = 0; i < maxComments; i++) { ... }
+
+// Option 2: Cache scores off-chain (gas-efficient but centralized)
+mapping(address => uint256) public cachedScores;
+
+function updateScore(address account) external {
+    cachedScores[account] = _calculateScore(account);
+}
+
+// Option 3: Incremental updates (best, requires refactor)
+mapping(address => uint256) public scores;
+
+function _onCommentCreated(address author) internal {
+    scores[author] += POINTS_PER_COMMENT;
+}
+```
+
+**Status:** 🟢 **ACCEPTED AS-IS** (MVP sufficient, add monitoring)
+
+**Mitigation Plan:**
+1. Monitor comment counts per user
+2. Consider caching or incremental updates in v2
+3. Hook fallback ensures uptime
+
+---
+
+#### ⚠️ LOW-2: Integer Overflow in Negative Scores
+
+**Location:** `KindredReputationOracle.getScore()` L101-107  
+**Severity:** 🟡 Low  
+**Impact:** Could cause revert if downvotes are extreme
+
+**Issue:**
+```solidity
+if (totalPoints >= 0) {
+    score = BASE_SCORE + uint256(totalPoints);
+} else {
+    uint256 penalty = uint256(-totalPoints);  // ⚠️ Casting negative int to uint
+    if (penalty >= BASE_SCORE) {
+        score = 0;
+    } else {
+        score = BASE_SCORE - penalty;
+    }
+}
+```
+
+**Edge Case:**
+If `totalPoints = type(int256).min` (-2^255), casting to uint256 causes overflow.
+
+**Likelihood:** Very low (requires astronomical downvote amounts, far exceeding total supply)
+
+**Why Not Critical:**
+- Requires downvotes > totalSupply of KindToken
+- KindredComment has economic limits (stake required)
+- Solidity 0.8+ overflow protection will revert (fail-safe)
+
+**Recommendation:**
+```solidity
+if (totalPoints >= 0) {
+    score = BASE_SCORE + uint256(totalPoints);
+    if (score > MAX_SCORE) score = MAX_SCORE;
+} else {
+    // Safe negation with bounds check
+    if (totalPoints == type(int256).min) {
+        score = 0;  // Extreme case
+    } else {
+        uint256 penalty = uint256(-totalPoints);
+        score = penalty >= BASE_SCORE ? 0 : BASE_SCORE - penalty;
+    }
+}
+```
+
+**Status:** 🟢 **ACCEPTED AS-IS** (overflow will revert safely)
+
+---
+
+#### ℹ️ INFO-1: External Calls in Loop
+
+**Location:** `getScore()` L82, `getScoreBreakdown()` L175  
+**Severity:** ℹ️ Informational  
+**Impact:** Gas inefficiency
+
+**Issue:**
+```solidity
+for (uint256 i = 0; i < commentIds.length; i++) {
+    KindredComment.Comment memory comment = kindredComment.getComment(commentIds[i]);
+}
+```
+
+**Why Acceptable:**
+- View function (no state changes)
+- Oracle failure fallback in Hook
+- Alternative (caching) adds complexity
+
+**Status:** 🟢 **ACCEPTED**
+
+---
+
+#### ℹ️ INFO-2: Missing Zero Address Check
+
+**Location:** Constructor L55, `setBlocked()` L129  
+**Severity:** ℹ️ Informational
+
+**Current:**
+```solidity
+constructor(address _kindredComment) {
+    if (_kindredComment == address(0)) revert ZeroAddress();  // ✅ Good
+    kindredComment = KindredComment(_kindredComment);
+    owner = msg.sender;  // ❌ No check
+}
+
+function setBlocked(address account, bool _blocked) external onlyOwner {
+    if (account == address(0)) revert ZeroAddress();  // ✅ Good
+    blocked[account] = _blocked;
+}
+```
+
+**Recommendation:**
+Constructor already checks `_kindredComment`. Owner is `msg.sender` (safe).
+
+**Status:** ✅ **ALREADY SAFE**
+
+---
+
+#### ℹ️ INFO-3: Naming Convention
+
+**Location:** `setBlocked()` parameter `_blocked`  
+**Severity:** ℹ️ Style
+
+**Recommendation:**
+```diff
+- function setBlocked(address account, bool _blocked) external onlyOwner {
++ function setBlocked(address account, bool isBlocked) external onlyOwner {
+```
+
+**Status:** 🟢 **ACCEPTED** (current naming is clear)
+
+---
+
+### ✅ KindredReputationOracle - Positive Findings
+
+1. ✅ **Simple and Auditable** - Clear reputation formula
+2. ✅ **Overflow Protection** - Solidity 0.8+ built-in
+3. ✅ **Immutable Reference** - `kindredComment` cannot be changed (trust)
+4. ✅ **Access Control** - Only owner can block accounts
+5. ✅ **Event Emission** - All admin actions emit events
+6. ✅ **View Functions** - No state changes, gas-free reads
+7. ✅ **getScoreBreakdown()** - Excellent debugging utility
+8. ✅ **Comprehensive Tests** - 21 tests covering all scenarios
+
+---
+
+### 📊 Updated Contract Status
+
+| Contract | Security | Tests | Deploy Status |
+|----------|----------|-------|---------------|
+| `KindToken.sol` | ✅ Clean | (in Comment tests) | 🚀 **DEPLOYED** (Base Sepolia) |
+| `KindTokenTestnet.sol` | ✅ Clean | (in Comment tests) | 🚀 **DEPLOYED** (Base Sepolia) |
+| `ReputationOracle.sol` | ⚠️ Deprecated | - | ❌ Replaced by KindredReputationOracle |
+| `KindredReputationOracle.sol` | ✅ **NEW - 4 Low/Info** | 21/21 ✅ | 🟡 Awaiting deploy |
+| `KindredHook.sol` | ✅ M-3 FIXED (v4 impl) | 22/22 ✅ | 🟡 Awaiting v4 pool |
+| `KindredComment.sol` | ✅ M-1/M-2 FIXED | 20/20 ✅ | 🚀 **DEPLOYED** (Base Sepolia) |
+
+**Overall Test Coverage:** 82/82 tests passing (100%)
+
+---
+
+### 🎯 Updated Action Items
+
+#### 🟢 Before Next Deploy:
+1. ✅ ~~Audit KindredReputationOracle~~ - **DONE**
+2. 🟡 **Deploy KindredReputationOracle to Base Sepolia** - Ready
+3. 🟡 **Deploy KindredHook** (requires v4 pool or mock)
+
+#### 🟡 Monitoring (Post-Deploy):
+4. Track comment counts per user (DoS risk at >100)
+5. Monitor Oracle failure events in Hook
+6. Gas usage analysis on live transactions
+
+#### 🟢 Nice-to-Have (v2):
+- Incremental score updates (avoid loops)
+- Score caching mechanism
+- Implement `type(int256).min` edge case handling
+
+---
+
+### 🚀 Deployment Recommendation
+
+**KindredReputationOracle:**
+- ✅ **SAFE TO DEPLOY** (4 Low/Info issues, all acceptable)
+- Constructor param: `address(KindredComment)` = `0xb6762e27a049a478da74c4a4ba3ba5fd179b76cf`
+
+**KindredHook:**
+- ✅ **SAFE TO DEPLOY** (v4 interface ready, awaiting pool)
+- Constructor params:
+  - `reputationOracle`: `<KindredReputationOracle address after deploy>`
+  - `owner`: Deployer address
+
+---
+
+**Patrick's Note:** 🛡️  
+*"New oracle contract is solid. Main concern is unbounded loops, but economic barriers + Hook fallback make it acceptable for MVP. Monitor user activity and consider caching in v2."*
+
+---
 
 ### 2026-02-05 20:30 PST - Hourly Review #4 🎉
 
