@@ -9,8 +9,6 @@
 
 import { searchPlace } from '@/lib/googlePlaces'
 
-// Use GOOGLE_GENERATIVE_AI_API_KEY as primary (already used by analyze.ts)
-const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
 
 export interface RestaurantAnalysis {
@@ -34,11 +32,16 @@ export interface RestaurantAnalysis {
 }
 
 export async function analyzeRestaurant(query: string): Promise<RestaurantAnalysis | null> {
+  // Read API key inside function (server action context)
+  const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+  
   console.log('[analyzeRestaurant] Starting analysis for:', query)
   console.log('[analyzeRestaurant] GEMINI_API_KEY available:', !!GEMINI_API_KEY)
   
   if (!GEMINI_API_KEY) {
     console.error('[analyzeRestaurant] GEMINI_API_KEY not configured')
+    console.error('[analyzeRestaurant] GOOGLE_GENERATIVE_AI_API_KEY:', !!process.env.GOOGLE_GENERATIVE_AI_API_KEY)
+    console.error('[analyzeRestaurant] GEMINI_API_KEY:', !!process.env.GEMINI_API_KEY)
     return null
   }
 
