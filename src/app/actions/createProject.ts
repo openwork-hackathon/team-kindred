@@ -3,8 +3,31 @@
 import { prisma } from "@/lib/prisma"
 import { analyzeProject, Web3ProjectResult } from "./analyze"
 
+// Known perp DEXes (override Gemini's classification)
+const KNOWN_PERP_DEXES = [
+  'hyperliquid', 'gmx', 'dydx', 'perpetual protocol', 'drift',
+  'vertex', 'gains network', 'kwenta', 'level finance', 'mux'
+]
+
+// Known infrastructure projects
+const KNOWN_INFRA = [
+  'eigenlayer', 'celestia', 'layerzero', 'chainlink', 'the graph'
+]
+
 // Map Gemini type to our category format
-function mapTypeToCategory(type: string): string {
+function mapTypeToCategory(type: string, projectName?: string): string {
+  const nameLower = (projectName || '').toLowerCase()
+  
+  // Override for known perp DEXes
+  if (KNOWN_PERP_DEXES.some(p => nameLower.includes(p))) {
+    return 'k/perp-dex'
+  }
+  
+  // Override for known infra projects
+  if (KNOWN_INFRA.some(p => nameLower.includes(p))) {
+    return 'k/infra'
+  }
+
   const typeMap: Record<string, string> = {
     'DEX': 'k/defi',           // Spot DEX like Uniswap → DeFi
     'Perpetual DEX': 'k/perp-dex', // Perp DEX like GMX, Hyperliquid
@@ -91,7 +114,7 @@ export async function findOrCreateProject(query: string): Promise<CreateProjectR
     
     // 3. Create project in database
     const address = generateProjectAddress(analysis.name || query)
-    const category = mapTypeToCategory(analysis.type)
+    const category = mapTypeToCategory(analysis.type, analysis.name || query)
     console.log(`[Kindred] Analysis type: "${analysis.type}" -> Category: "${category}"`)
     
     const newProject = await prisma.project.create({
