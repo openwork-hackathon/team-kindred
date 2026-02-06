@@ -10,6 +10,7 @@ import { useStore, Project } from '@/lib/store'
 
 import { useState, useEffect } from 'react'
 import { analyzeProject } from '@/app/actions/analyze'
+import { getTokenPrice, TokenPrice } from '@/lib/coingecko'
 import { Sparkles, Users } from 'lucide-react'
 
 // Initial loading state mock
@@ -157,7 +158,7 @@ export default function ProjectPage() {
                 </span>
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-400">
-                <span>{data.category.startsWith('k/') ? `r/${data.category.split('/')[1]}` : data.category}</span>
+                <span>{data.category}</span>
                 <span>•</span>
                 <span>Tier 1 Project</span>
               </div>
