@@ -21,6 +21,16 @@ const PROJECT_TO_COINGECKO: Record<string, string> = {
   'ethereum': 'ethereum',
   'bitcoin': 'bitcoin',
   'solana': 'solana',
+  'eigenlayer': 'eigenlayer',
+  'eigen': 'eigenlayer',
+  'arbitrum': 'arbitrum',
+  'optimism': 'optimism',
+  'base': 'base-protocol',
+  'jupiter': 'jupiter-exchange-solana',
+  'raydium': 'raydium',
+  'orca': 'orca',
+  'marinade': 'marinade',
+  'jito': 'jito-governance-token',
 }
 
 export interface TokenPrice {

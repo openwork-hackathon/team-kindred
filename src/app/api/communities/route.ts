@@ -12,21 +12,39 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Category required' }, { status: 400 })
     }
 
-    // Get aggregate stats for this category
+    // Get real stats from database
     const stats = await prisma.project.aggregate({
       where: { category },
       _count: { id: true },
       _sum: { reviewCount: true },
     })
 
-    // For now, return placeholder stats
-    // TODO: Implement actual community membership tracking
-    const memberCount = stats._count.id * 10 + Math.floor(Math.random() * 50)
-    const stakedAmount = (stats._sum.reviewCount || 0) * 1000 + Math.floor(Math.random() * 10000)
+    // Count unique reviewers as "members"
+    const reviewerCount = await prisma.review.groupBy({
+      by: ['reviewerAddress'],
+      where: {
+        project: { category }
+      }
+    })
+
+    // Get total staked from projects in this category
+    const projects = await prisma.project.findMany({
+      where: { category },
+      select: { totalStaked: true }
+    })
+    
+    const totalStaked = projects.reduce((sum, p) => {
+      const staked = BigInt(p.totalStaked || '0')
+      return sum + staked
+    }, BigInt(0))
+
+    const stakedInEth = Number(totalStaked) / 1e18
 
     return NextResponse.json({
-      members: memberCount > 0 ? `${memberCount}` : '-',
-      staked: stakedAmount > 0 ? `$${(stakedAmount / 1000).toFixed(1)}K` : '-',
+      members: reviewerCount.length > 0 ? `${reviewerCount.length}` : '-',
+      staked: stakedInEth > 0 ? `$${(stakedInEth).toFixed(1)}K` : '-',
+      projectCount: stats._count.id,
+      reviewCount: stats._sum.reviewCount || 0,
       category,
     })
   } catch (error) {
