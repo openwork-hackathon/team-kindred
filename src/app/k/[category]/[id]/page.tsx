@@ -67,9 +67,10 @@ export default async function ProjectPage({
   let project = null
   let reviews: any[] = []
   let aggregateRating = null
+  let maatAnalysis = null
   
   try {
-    const [projectData, reviewsData] = await Promise.all([
+    const [projectData, reviewsData, analysisCache] = await Promise.all([
       prisma.project.findUnique({
         where: { address: projectId },
       }),
@@ -78,10 +79,23 @@ export default async function ProjectPage({
         orderBy: { upvotes: 'desc' },
         take: 20,
       }),
+      // Fetch Ma'at analysis from cache (includes funding, investors, audits, etc.)
+      prisma.projectAnalysisCache.findUnique({
+        where: { query: projectId },
+      }),
     ])
     
     project = projectData
     reviews = reviewsData
+    
+    // Parse Ma'at analysis if available
+    if (analysisCache) {
+      try {
+        maatAnalysis = JSON.parse(analysisCache.result)
+      } catch (e) {
+        console.error('Failed to parse Ma\'at analysis:', e)
+      }
+    }
     
     // Calculate aggregate rating if we have reviews
     if (reviews.length > 0) {
@@ -150,7 +164,19 @@ export default async function ProjectPage({
       <ProjectPageContent 
         projectId={projectId}
         category={category}
-        initialProject={project}
+        initialProject={project && maatAnalysis ? {
+          ...project,
+          // Merge Ma'at analysis data (funding, investors, audits, etc.)
+          aiSummary: maatAnalysis.summary,
+          keyPoints: maatAnalysis.features,
+          riskWarnings: maatAnalysis.warnings,
+          audits: maatAnalysis.audits,
+          investors: maatAnalysis.investors,
+          funding: maatAnalysis.funding,
+          aiVerdict: maatAnalysis.status === 'VERIFIED' ? 'bullish' : maatAnalysis.status === 'RISKY' ? 'bearish' : 'neutral',
+          aiScore: maatAnalysis.score * 20,
+          maAtStatus: maatAnalysis.status,
+        } : project}
         initialReviews={reviews}
       />
     </>
