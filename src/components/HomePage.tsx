@@ -231,22 +231,6 @@ function SidebarSection({ title, children }: { title: string; children: React.Re
   )
 }
 
-function AgentItem({ name, status, icon: Icon, color }: { name: string; status: 'online' | 'offline'; icon: any; color: string }) {
-  const colorClasses = {
-    green: 'bg-green-500/20 text-green-500',
-    purple: 'bg-purple-500/20 text-purple-500',
-    gray: 'bg-[#6b6b70]/20 text-[#6b6b70]'
-  }
-  
-  return (
-    <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#1a1a1d] cursor-pointer transition-colors">
-      <div className={`w-6 h-6 rounded-md flex items-center justify-center ${colorClasses[color as keyof typeof colorClasses]}`}>
-        <Icon className="w-3 h-3" />
-      </div>
-      <div className="flex flex-col">
-        <span className="text-sm text-[#adadb0]">{name}</span>
-        <span className={`text-[10px] font-medium ${status === 'online' ? 'text-green-500' : 'text-[#6b6b70]'}`}>
-          {status === 'online' ? '● Active' : '○ Paused'}
         </span>
       </div>
     </div>
