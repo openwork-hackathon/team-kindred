@@ -172,7 +172,7 @@ export default function ProjectPage() {
                 </span>
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-400">
-                <span>{data.category.startsWith('k/') ? `r/${data.category.split('/')[1]}` : data.category}</span>
+                <span>{data.category}</span>
                 <span>•</span>
                 <span>Tier 1 Project</span>
               </div>

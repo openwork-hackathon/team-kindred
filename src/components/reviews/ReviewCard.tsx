@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { Coins, Loader2, TrendingUp, TrendingDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Coins, Loader2, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
 import { useUpvote, useDownvote } from '@/hooks/useKindredComment'
-import { parseEther } from 'viem'
+import { useApproveKindToken, useKindTokenAllowance, useKindTokenBalance } from '@/hooks/useKindToken'
+import { parseEther, formatEther } from 'viem'
 import { useAccount } from 'wagmi'
 
 interface Review {
@@ -36,13 +37,52 @@ export function ReviewCard({ review }: ReviewCardProps) {
   const { address, isConnected } = useAccount()
   const [voteAmount, setVoteAmount] = useState('0.1') // Default 0.1 KIND
   const [showVoteInput, setShowVoteInput] = useState(false)
+  const [needsApproval, setNeedsApproval] = useState(false)
   
+  // Contract hooks
   const { upvote, isPending: isUpvoting, isConfirming: isUpvoteConfirming } = useUpvote()
   const { downvote, isPending: isDownvoting, isConfirming: isDownvoteConfirming } = useDownvote()
+  const { approve, isPending: isApproving, isConfirming: isApproveConfirming } = useApproveKindToken()
+  
+  // Balance and allowance queries
+  const { data: balance } = useKindTokenBalance(address)
+  const { data: allowance, refetch: refetchAllowance } = useKindTokenAllowance(address)
   
   const stakeValue = review.stakeAmount ? Number(review.stakeAmount.toString().replace(/,/g, '')) : 0
   const truncateAddress = (addr: string) => addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : 'Anon'
   const netScore = review.upvotes - review.downvotes
+  
+  // Check if approval is needed when vote amount changes
+  useEffect(() => {
+    if (!allowance || !voteAmount) {
+      setNeedsApproval(false)
+      return
+    }
+    
+    try {
+      const amountWei = parseEther(voteAmount)
+      const currentAllowance = BigInt(allowance.toString())
+      setNeedsApproval(currentAllowance < amountWei)
+    } catch (error) {
+      console.error('Error checking allowance:', error)
+      setNeedsApproval(false)
+    }
+  }, [allowance, voteAmount])
+  
+  const handleApprove = async () => {
+    try {
+      const amountWei = parseEther(voteAmount)
+      await approve(amountWei.toString())
+      
+      // Wait a bit and refetch allowance
+      setTimeout(() => {
+        refetchAllowance()
+      }, 2000)
+    } catch (error) {
+      console.error('Approval failed:', error)
+      alert('Approval failed. Please try again.')
+    }
+  }
   
   const handleUpvote = async () => {
     if (!isConnected) {
@@ -53,6 +93,21 @@ export function ReviewCard({ review }: ReviewCardProps) {
     if (!review.nftTokenId) {
       alert('This review has not been minted as NFT yet. Cannot vote.')
       return
+    }
+    
+    if (needsApproval) {
+      alert('Please approve KIND token spending first')
+      return
+    }
+    
+    // Check balance
+    if (balance) {
+      const balanceBigInt = balance as bigint
+      const amountWei = parseEther(voteAmount)
+      if (balanceBigInt < amountWei) {
+        alert(`Insufficient KIND balance. You have ${formatEther(balanceBigInt)} KIND`)
+        return
+      }
     }
     
     try {
@@ -70,6 +125,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
       // TODO: Refresh review data or use optimistic update
     } catch (error) {
       console.error('Upvote failed:', error)
+      alert('Upvote failed. Please try again.')
     }
   }
   
@@ -82,6 +138,21 @@ export function ReviewCard({ review }: ReviewCardProps) {
     if (!review.nftTokenId) {
       alert('This review has not been minted as NFT yet. Cannot vote.')
       return
+    }
+    
+    if (needsApproval) {
+      alert('Please approve KIND token spending first')
+      return
+    }
+    
+    // Check balance
+    if (balance) {
+      const balanceBigInt = balance as bigint
+      const amountWei = parseEther(voteAmount)
+      if (balanceBigInt < amountWei) {
+        alert(`Insufficient KIND balance. You have ${formatEther(balanceBigInt)} KIND`)
+        return
+      }
     }
     
     try {
@@ -99,6 +170,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
       // TODO: Refresh review data or use optimistic update
     } catch (error) {
       console.error('Downvote failed:', error)
+      alert('Downvote failed. Please try again.')
     }
   }
   
@@ -158,31 +230,66 @@ export function ReviewCard({ review }: ReviewCardProps) {
             className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white"
             placeholder="0.1"
           />
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={handleUpvote}
-              disabled={isUpvoting || isUpvoteConfirming}
-              className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 text-white px-4 py-2 rounded transition"
-            >
-              {isUpvoting || isUpvoteConfirming ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <TrendingUp className="w-4 h-4" />
-              )}
-              <span>Upvote</span>
-            </button>
-            <button
-              onClick={handleDownvote}
-              disabled={isDownvoting || isDownvoteConfirming}
-              className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white px-4 py-2 rounded transition"
-            >
-              {isDownvoting || isDownvoteConfirming ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <TrendingDown className="w-4 h-4" />
-              )}
-              <span>Downvote</span>
-            </button>
+          
+          {/* Balance Display */}
+          {balance && (
+            <div className="text-xs text-gray-400 mt-1">
+              Balance: {formatEther(balance as bigint)} KIND
+            </div>
+          )}
+          
+          {/* Approval Warning */}
+          {needsApproval && (
+            <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5" />
+              <div className="text-xs text-yellow-400">
+                You need to approve KIND token spending before voting
+              </div>
+            </div>
+          )}
+          
+          <div className="flex gap-2 mt-3">
+            {needsApproval ? (
+              <button
+                onClick={handleApprove}
+                disabled={isApproving || isApproveConfirming}
+                className="flex-1 flex items-center justify-center gap-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-700 text-white px-4 py-2 rounded transition"
+              >
+                {isApproving || isApproveConfirming ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Coins className="w-4 h-4" />
+                )}
+                <span>Approve KIND</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handleUpvote}
+                  disabled={isUpvoting || isUpvoteConfirming}
+                  className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 text-white px-4 py-2 rounded transition"
+                >
+                  {isUpvoting || isUpvoteConfirming ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <TrendingUp className="w-4 h-4" />
+                  )}
+                  <span>Upvote</span>
+                </button>
+                <button
+                  onClick={handleDownvote}
+                  disabled={isDownvoting || isDownvoteConfirming}
+                  className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white px-4 py-2 rounded transition"
+                >
+                  {isDownvoting || isDownvoteConfirming ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4" />
+                  )}
+                  <span>Downvote</span>
+                </button>
+              </>
+            )}
             <button
               onClick={() => setShowVoteInput(false)}
               className="px-4 py-2 border border-gray-600 text-gray-400 hover:text-white rounded transition"

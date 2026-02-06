@@ -24,7 +24,8 @@ export function useCreateComment() {
     content: string
     stakeAmount: string // Wei string (e.g., "1000000000000000000" for 1 OPEN)
   }) => {
-    // TODO: First approve KindToken spending if stakeAmount > 0
+    // NOTE: Approval should be handled by the UI layer before calling this
+    // Use useApproveKindToken() hook from useKindToken.ts
     
     writeContract({
       address: CONTRACT.address,
@@ -61,7 +62,8 @@ export function useUpvote() {
   })
 
   const upvote = async (tokenId: bigint, stakeAmount: bigint) => {
-    // TODO: First approve KindToken spending if stakeAmount > 0
+    // NOTE: Approval should be handled by the UI layer before calling this
+    // Use useApproveKindToken() and useKindTokenAllowance() from useKindToken.ts
     
     writeContract({
       address: CONTRACT.address,
@@ -94,7 +96,8 @@ export function useDownvote() {
   })
 
   const downvote = async (tokenId: bigint, stakeAmount: bigint) => {
-    // TODO: First approve KindToken spending if stakeAmount > 0
+    // NOTE: Approval should be handled by the UI layer before calling this
+    // Use useApproveKindToken() and useKindTokenAllowance() from useKindToken.ts
     
     writeContract({
       address: CONTRACT.address,
