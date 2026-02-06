@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { TrendingUp, TrendingDown, Minus, Flame, Clock, Award, BarChart3, ArrowUpRight } from 'lucide-react'
 
@@ -28,6 +29,7 @@ interface LeaderboardEntry {
   projectAddress: string
   projectName: string
   category: string
+  image: string | null
   avgRating: number
   reviewCount: number
   totalStaked: string
@@ -120,6 +122,7 @@ export function MindshareBoard() {
       id: p.projectAddress,
       name: p.projectName,
       ticker: p.projectName.toUpperCase().slice(0, 4),
+      image: p.image,
       category: p.category,
       rank: p.rank,
       mindshare,
@@ -168,8 +171,12 @@ export function MindshareBoard() {
             <div key={entry.id} className="bg-[#111113] border border-[#1f1f23] rounded-xl p-4 hover:border-[#2a2a2e] transition-colors">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style={{ backgroundColor: entry.color + '20', color: entry.color }}>
-                    {entry.ticker.slice(0, 2)}
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold overflow-hidden" style={{ backgroundColor: entry.color + '20', color: entry.color }}>
+                    {entry.image ? (
+                      <Image src={entry.image} alt={entry.name} width={32} height={32} className="w-full h-full object-contain" />
+                    ) : (
+                      entry.ticker.slice(0, 2)
+                    )}
                   </div>
                   <div>
                     <div className="text-sm font-semibold">{entry.ticker}</div>
@@ -253,10 +260,14 @@ export function MindshareBoard() {
             {/* Project */}
             <div className="col-span-3 flex items-center gap-3">
               <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden"
                 style={{ backgroundColor: entry.color + '15', color: entry.color }}
               >
-                {entry.ticker.slice(0, 3)}
+                {entry.image ? (
+                  <Image src={entry.image} alt={entry.name} width={40} height={40} className="w-full h-full object-contain" />
+                ) : (
+                  entry.ticker.slice(0, 3)
+                )}
               </div>
               <div>
                 <div className="text-sm font-semibold">{entry.name}</div>

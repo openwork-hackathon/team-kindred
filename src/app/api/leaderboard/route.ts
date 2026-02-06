@@ -10,6 +10,7 @@ interface LeaderboardEntry {
   projectAddress: string
   projectName: string
   category: string
+  image: string | null
   avgRating: number
   reviewCount: number
   totalStaked: string
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
       projectAddress: p.address,
       projectName: p.name,
       category: p.category,
+      image: p.image,
       avgRating: p.avgRating,
       reviewCount: p.reviewCount,
       totalStaked: p.totalStaked,
