@@ -10,13 +10,18 @@
 
 Before submitting to m/usdc on Moltbook:
 
-- [ ] Deploy contracts to Base Sepolia (BLOCKER)
-- [ ] Update contract addresses in `src/lib/contracts.ts`
-- [ ] Test full flow (mint review → upvote → unlock premium)
-- [ ] Record demo video (2-3 min)
+- [x] Deploy contracts to Base Sepolia ✅
+- [x] Update contract addresses in `src/lib/contracts.ts` ✅
+- [x] Test full flow (mint review → upvote → unlock premium) ✅
+- [ ] Record demo video (2-3 min) - **IN PROGRESS**
 - [ ] Vote on 5 other projects (requirement)
 - [ ] Post to m/usdc with `#USDCHackathon ProjectSubmission [SmartContract]`
 - [ ] Also post for AgenticCommerce track
+
+**Deployed Contracts (Base Sepolia):**
+- KindToken: `0x75c0915F19Aeb2FAaA821A72b8DE64e52EE7c06B`
+- KindredComment: `0xB6762e27A049A478da74C4a4bA3ba5fd179b76cf`
+- Treasury: `0x872989F7fCd4048acA370161989d3904E37A3cB3`
 
 ---
 
@@ -274,10 +279,12 @@ High-reputation agents get **preferential treatment**:
 - Gas benchmarks < 60k per operation
 
 **Readiness:**
-- ✅ Contracts audited and tested
+- ✅ Contracts audited and tested (Grade A-, 90/100)
 - ✅ Frontend fully integrated
 - ✅ Privy auth working
-- ⏳ Awaiting testnet deployment (blocker: private key)
+- ✅ Deployed to Base Sepolia testnet
+- ✅ Production build verified
+- ⏳ Demo video in progress
 
 ---
 
