@@ -4,6 +4,21 @@ const nextConfig = {
   swcMinify: true,
   pageExtensions: ['tsx', 'ts'],
   
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'assets.coingecko.com',
+        pathname: '/coins/images/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'coin-images.coingecko.com',
+        pathname: '/**',
+      },
+    ],
+  },
+  
   webpack: (config) => {
     config.resolve.alias['@react-native-async-storage/async-storage'] = false
     return config

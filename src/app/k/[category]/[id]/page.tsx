@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { AISummaryCard } from '@/components/project/AISummaryCard'
 import { ReviewCard } from '@/components/reviews/ReviewCard'
 import { CommunityInfo } from '@/components/project/CommunityInfo'
@@ -10,6 +11,7 @@ import { useStore, Project } from '@/lib/store'
 
 import { useState, useEffect } from 'react'
 import { analyzeProject } from '@/app/actions/analyze'
+import { findOrCreateProject } from '@/app/actions/createProject'
 import { getTokenPrice, TokenPrice } from '@/lib/coingecko'
 import { Sparkles, Users } from 'lucide-react'
 
@@ -72,47 +74,71 @@ export default function ProjectPage() {
   }, [projectId])
   
   useEffect(() => {
-    // Always fetch Ma'at analysis (cached in DB for 24h)
+    // Always fetch Ma'at analysis AND create project in DB if not exists
     // Show loading state first
     setProjectData(LOADING_PROJECT)
     
-    analyzeProject(projectId).then((result) => {
-        const fullData = {
-          ...LOADING_PROJECT,
-          id: projectId,
-          name: result.name,
-          ticker: result.tokenSymbol || result.name.substring(0, 4).toUpperCase(),
-          category: `k/${result.type.toLowerCase()}`,
-          price: result.tokenPrice || '-',
-          marketCap: result.tvl || '-',
-          volume24h: '-',
-          
-          aiVerdict: result.status === 'VERIFIED' ? 'bullish' : result.status === 'RISKY' ? 'bearish' : 'neutral',
-          aiScore: result.score * 20,
-          aiSummary: result.summary,
-          keyPoints: result.features,
-          
-          riskWarnings: result.warnings,
-          audits: result.audits,
-          investors: result.investors,
-          maAtStatus: result.status,
-        }
-        
-        setProjectData(fullData)
-
-        // AUTO ADD: Persist verified project to store
-        // We map the analysis result to our simple Store Project type
-        addProject({
-          id: projectId,
-          name: result.name,
-          ticker: result.tokenSymbol || "UNK",
-          category: result.type,
-          score: result.score,
-          tvl: result.tvl,
-          reviewsCount: 0,
-          logo: undefined
+    findOrCreateProject(projectId).then((createResult) => {
+      if (!createResult.success || !createResult.analysis) {
+        // Fallback to direct analysis if creation failed
+        analyzeProject(projectId).then((result) => {
+          setProjectData({
+            ...LOADING_PROJECT,
+            id: projectId,
+            name: result.name,
+            ticker: result.tokenSymbol || result.name.substring(0, 4).toUpperCase(),
+            category: `k/${result.type.toLowerCase()}`,
+            aiVerdict: result.status === 'VERIFIED' ? 'bullish' : result.status === 'RISKY' ? 'bearish' : 'neutral',
+            aiScore: result.score * 20,
+            aiSummary: result.summary,
+            keyPoints: result.features,
+            riskWarnings: result.warnings,
+            audits: result.audits,
+            investors: result.investors,
+            maAtStatus: result.status,
+          })
         })
+        return
+      }
+
+      const result = createResult.analysis
+      const fullData = {
+        ...LOADING_PROJECT,
+        id: createResult.project?.id || projectId,
+        name: result.name,
+        ticker: result.tokenSymbol || result.name.substring(0, 4).toUpperCase(),
+        category: createResult.project?.category || `k/${result.type.toLowerCase()}`,
+        price: result.tokenPrice || '-',
+        marketCap: result.tvl || '-',
+        volume24h: '-',
+        image: result.image, // Logo from CoinGecko
+        
+        aiVerdict: result.status === 'VERIFIED' ? 'bullish' : result.status === 'RISKY' ? 'bearish' : 'neutral',
+        aiScore: result.score * 20,
+        aiSummary: result.summary,
+        keyPoints: result.features,
+        
+        riskWarnings: result.warnings,
+        audits: result.audits,
+        investors: result.investors,
+        maAtStatus: result.status,
+      }
+      
+      setProjectData(fullData)
+
+      // AUTO ADD: Persist verified project to store
+      // We map the analysis result to our simple Store Project type
+      addProject({
+        id: createResult.project?.id || projectId,
+        name: result.name,
+        ticker: result.tokenSymbol || "UNK",
+        category: result.type,
+        score: result.score,
+        tvl: result.tvl,
+        reviewsCount: 0,
+        logo: result.image
       })
+    })
   }, [projectId, addProject])
 
   const data = projectData || LOADING_PROJECT
@@ -137,7 +163,17 @@ export default function ProjectPage() {
                {data.id === 'loading' && (
                  <div className="absolute inset-0 bg-yellow-500/20 animate-pulse" />
                )}
-               {data.name[0]?.toUpperCase() || '?'}
+               {data.image ? (
+                 <Image 
+                   src={data.image} 
+                   alt={data.name} 
+                   width={96} 
+                   height={96}
+                   className="w-full h-full object-cover"
+                 />
+               ) : (
+                 data.name[0]?.toUpperCase() || '?'
+               )}
             </div>
             <div>
               <div className="flex items-center gap-3 mb-1">

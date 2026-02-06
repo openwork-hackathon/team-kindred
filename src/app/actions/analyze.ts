@@ -2,6 +2,7 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { prisma } from "@/lib/prisma"
+import { getTokenPrice } from "@/lib/coingecko"
 
 // Initialize Google GenAI with the API Key
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
@@ -16,6 +17,7 @@ export interface Web3ProjectResult {
   score: number
   status: 'VERIFIED' | 'UNSTABLE' | 'RISKY' // Ma'at Status
   summary: string
+  image?: string // Logo URL from CoinGecko
   tvl?: string
   website?: string
   twitter?: string
@@ -196,6 +198,18 @@ IMPORTANT:
     const score = data.score || 0
     const status = data.status || (score >= 4.0 ? 'VERIFIED' : score < 2.5 ? 'RISKY' : 'UNSTABLE')
 
+    // Fetch logo from CoinGecko (non-blocking, best effort)
+    let projectImage: string | undefined
+    try {
+      const tokenData = await getTokenPrice(data.name || query)
+      if (tokenData?.image) {
+        projectImage = tokenData.image
+        console.log(`[Ma'at] Got logo from CoinGecko: ${projectImage}`)
+      }
+    } catch (e) {
+      console.log('[Ma\'at] Could not fetch logo from CoinGecko')
+    }
+
     const analysisResult: Web3ProjectResult = {
       name: data.name || query,
       type: data.type || 'Other',
@@ -203,6 +217,7 @@ IMPORTANT:
       score,
       status: status,
       summary: data.summary || '無法完成分析',
+      image: projectImage,
       tvl: data.tvl,
       website: data.website,
       twitter: data.twitter,
