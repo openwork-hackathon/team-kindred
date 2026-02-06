@@ -315,6 +315,21 @@ export function ProjectPageContent({
                   🍽️ Restaurant Info
                 </h3>
                 <div className="space-y-3">
+                  {/* Platform Scores */}
+                  {data.platformScores?.length > 0 && (
+                    <div className="pb-3 border-b border-gray-700">
+                      <span className="text-xs text-gray-400 uppercase block mb-2">⭐ Platform Ratings</span>
+                      <div className="flex flex-wrap gap-2">
+                        {data.platformScores.map((ps: any, i: number) => (
+                          <div key={i} className="bg-black/30 border border-gray-700 rounded-lg px-3 py-1.5 flex items-center gap-2">
+                            <span className="text-xs text-gray-400">{ps.platform}</span>
+                            <span className="text-sm font-bold text-orange-400">{ps.score}</span>
+                            {ps.reviewCount && <span className="text-[10px] text-gray-500">({ps.reviewCount})</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {data.cuisine && (
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-400 uppercase">Cuisine</span>
@@ -371,12 +386,49 @@ export function ProjectPageContent({
                       </div>
                     </div>
                   )}
+                  {/* Restaurant Warnings (not corporate scandals) */}
+                  {data.warnings?.length > 0 && (
+                    <div className="pt-2 border-t border-gray-700">
+                      <span className="text-xs text-yellow-400 uppercase block mb-2">⚠️ 注意事項</span>
+                      <ul className="space-y-1">
+                        {data.warnings.map((w: string, i: number) => (
+                          <li key={i} className="text-sm text-yellow-200/80">• {w}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {/* Critical Reviews */}
+                  {data.criticalReviews?.length > 0 && (
+                    <div className="pt-2 border-t border-gray-700">
+                      <span className="text-xs text-red-400 uppercase block mb-2">😤 常見差評</span>
+                      <ul className="space-y-1">
+                        {data.criticalReviews.map((cr: any, i: number) => (
+                          <li key={i} className="text-sm text-red-200/80">
+                            • {cr.issue || cr} {cr.source && <span className="text-red-400/60">({cr.source})</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {/* Google Maps Link */}
+                  {data.googleMapsUrl && (
+                    <div className="pt-3 border-t border-gray-700">
+                      <a 
+                        href={data.googleMapsUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-orange-400 hover:text-orange-300"
+                      >
+                        📍 在 Google Maps 查看
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Ma'at Risk Analysis */}
-            {(data.riskWarnings?.length > 0 || data.audits?.length > 0) && (
+            {/* Ma'at Risk Analysis - Hide for k/gourmet (restaurants don't need security audits) */}
+            {category !== 'k/gourmet' && (data.riskWarnings?.length > 0 || data.audits?.length > 0) && (
               <div className="p-4 rounded-xl bg-[#1a1a1d] border border-yellow-500/20">
                 <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
                   ⚠️ Ma'at Risk Analysis
