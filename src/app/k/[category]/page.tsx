@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation'
 import { CategoryFeed } from '@/components/CategoryFeed'
 import { Header } from '@/components/Header'
+import { CommunityInfo } from '@/components/CommunityInfo'
 
 const CATEGORY_INFO: Record<string, { icon: string; description: string }> = {
   'defi': { icon: '🏦', description: 'DeFi protocols - Lending, DEXs, Yield' },
@@ -22,12 +23,20 @@ export default function CategoryPage() {
     <main className="min-h-screen bg-[#0a0a0b] text-white">
       <Header />
       
-      <div className="py-8 px-4">
-        <CategoryFeed
-          category={`k/${category}`}
-          categoryIcon={info.icon}
-          categoryDescription={info.description}
-        />
+      <div className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
+        {/* Main Content */}
+        <div className="flex-1 max-w-4xl">
+          <CategoryFeed
+            category={`k/${category}`}
+            categoryIcon={info.icon}
+            categoryDescription={info.description}
+          />
+        </div>
+
+        {/* Right Sidebar - Category Community Info */}
+        <div className="hidden xl:block">
+          <CommunityInfo category={`k/${category}`} />
+        </div>
       </div>
     </main>
   )
