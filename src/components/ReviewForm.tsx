@@ -1,9 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { WalletButton } from '@/components/WalletButton'
 import { useIsMounted } from './ClientOnly'
+import {
+  useKindBalance,
+  useKindAllowance,
+  useApproveKind,
+  formatKind,
+  parseKind,
+} from '@/hooks/useKindToken'
+import {
+  useCreateComment,
+} from '@/hooks/useKindredComment'
 
 type Category = 'k/memecoin' | 'k/defi' | 'k/perp-dex' | 'k/ai'
 
@@ -13,7 +23,7 @@ interface ReviewFormData {
   content: string
   category: Category
   stakeAmount: string
-  predictedRank?: number // Opinion market: where will this rank?
+  predictedRank?: number
 }
 
 const CATEGORIES: { value: Category; label: string; icon: string; description: string }[] = [
@@ -24,27 +34,54 @@ const CATEGORIES: { value: Category; label: string; icon: string; description: s
 ]
 
 const STAKE_OPTIONS = [
-  { value: '0', label: 'No Stake', description: 'Basic review' },
-  { value: '1000000000000000000', label: '1 OPEN', description: '+10% reputation' },
-  { value: '5000000000000000000', label: '5 OPEN', description: '+25% reputation' },
-  { value: '10000000000000000000', label: '10 OPEN', description: '+50% reputation' },
+  { value: '100', label: '100 KIND', description: 'Minimum stake' },
+  { value: '500', label: '500 KIND', description: '+20% reputation' },
+  { value: '1000', label: '1000 KIND', description: '+50% reputation' },
+  { value: '5000', label: '5000 KIND', description: 'Max reputation' },
 ]
 
 export function ReviewForm() {
   const isMounted = useIsMounted()
   const { address, isConnected } = useAccount()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   
+  // Token state
+  const { data: balance } = useKindBalance(address)
+  const { data: allowance } = useKindAllowance(address)
+  const { approve, isPending: isApproving } = useApproveKind()
+  
+  // Comment creation
+  const { createComment, isPending: isCreating, isSuccess: isCreated, hash: txHash } = useCreateComment()
+  
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState<ReviewFormData>({
     targetAddress: '',
     rating: 0,
     content: '',
     category: 'k/defi',
-    stakeAmount: '0',
+    stakeAmount: '100',
     predictedRank: undefined,
   })
+
+  // Check if approval is needed
+  const stakeAmountBigInt = parseKind(formData.stakeAmount)
+  const needsApproval = !allowance || (allowance as bigint) < stakeAmountBigInt
+  const hasBalance = balance && (balance as bigint) >= stakeAmountBigInt
+
+  // Reset form on success
+  useEffect(() => {
+    if (isCreated) {
+      setTimeout(() => {
+        setFormData({
+          targetAddress: '',
+          rating: 0,
+          content: '',
+          category: 'k/defi',
+          stakeAmount: '100',
+          predictedRank: undefined,
+        })
+      }, 3000)
+    }
+  }, [isCreated])
 
   // Prevent SSR hydration mismatch
   if (!isMounted) {
@@ -60,7 +97,18 @@ export function ReviewForm() {
     )
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleApprove = () => {
+    setError(null)
+    try {
+      // Approve a large amount to avoid multiple approvals
+      approve(parseKind('1000000'))
+    } catch (err) {
+      setError('Approval failed. Please try again.')
+      console.error(err)
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     
@@ -77,28 +125,34 @@ export function ReviewForm() {
       setError('Review must be at least 10 characters')
       return
     }
+    if (!hasBalance) {
+      setError('Insufficient KIND balance')
+      return
+    }
 
-    setIsSubmitting(true)
-    
     try {
-      const response = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          reviewerAddress: address,
-        }),
+      // Create project ID from category + target address
+      const projectIdString = `${formData.category}:${formData.targetAddress}`
+      const projectIdBytes32 = '0x' + Buffer.from(projectIdString).toString('hex').padEnd(64, '0')
+      
+      // Create content hash (simplified - in production use IPFS)
+      const contentHash = JSON.stringify({
+        content: formData.content,
+        rating: formData.rating,
+        predictedRank: formData.predictedRank,
+        timestamp: Date.now(),
       })
+
+      createComment(
+        projectIdBytes32 as `0x${string}`,
+        contentHash,
+        stakeAmountBigInt
+      )
       
-      if (!response.ok) {
-        throw new Error('Failed to submit review')
-      }
-      
-      setSubmitted(true)
+      // Note: Transaction success/failure handled by isCreated state
     } catch (err) {
-      setError('Failed to submit review. Please try again.')
-    } finally {
-      setIsSubmitting(false)
+      setError('Transaction failed. Please try again.')
+      console.error(err)
     }
   }
 
@@ -114,41 +168,59 @@ export function ReviewForm() {
     )
   }
 
-  if (submitted) {
+  if (isCreated) {
     return (
       <div className="bg-kindred-dark border border-green-500 rounded-xl p-8 text-center">
         <div className="text-6xl mb-4">✅</div>
-        <h2 className="text-2xl font-bold mb-2">Review Submitted!</h2>
-        <p className="text-gray-400 mb-6">
-          Your review has been recorded. It will be minted as an NFT shortly.
+        <h2 className="text-2xl font-bold mb-2">Review Minted On-Chain!</h2>
+        <p className="text-gray-400 mb-4">
+          Your review has been minted as an NFT.
         </p>
-        <button
-          onClick={() => {
-            setSubmitted(false)
-            setFormData({
-              targetAddress: '',
-              rating: 0,
-              content: '',
-              category: 'k/defi',
-              stakeAmount: '0',
-              predictedRank: undefined,
-            })
-          }}
-          className="bg-kindred-primary hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition"
-        >
-          Write Another Review
-        </button>
+        {txHash && (
+          <a
+            href={`https://sepolia.basescan.org/tx/${txHash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-kindred-primary hover:underline text-sm"
+          >
+            View Transaction →
+          </a>
+        )}
+        <div className="mt-6 text-sm text-gray-500">
+          The form will reset in a moment...
+        </div>
       </div>
     )
   }
 
   return (
     <form onSubmit={handleSubmit} className="bg-kindred-dark border border-gray-800 rounded-xl p-6 md:p-8">
-      <h2 className="text-2xl font-bold mb-6">Write a Review</h2>
+      <h2 className="text-2xl font-bold mb-2">Write a Review</h2>
+      <p className="text-sm text-gray-400 mb-6">
+        Balance: {balance ? formatKind(balance as bigint) : '0'} KIND
+      </p>
       
       {error && (
         <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-2 rounded-lg mb-6">
           {error}
+        </div>
+      )}
+
+      {/* Approval Step */}
+      {needsApproval && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
+          <h3 className="font-semibold mb-2">Step 1: Approve Tokens</h3>
+          <p className="text-sm text-gray-400 mb-3">
+            Allow the contract to stake your KIND tokens
+          </p>
+          <button
+            type="button"
+            onClick={handleApprove}
+            disabled={isApproving || !hasBalance}
+            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {isApproving ? 'Approving...' : 'Approve KIND Tokens'}
+          </button>
         </div>
       )}
 
@@ -220,13 +292,13 @@ export function ReviewForm() {
         </div>
       </div>
 
-      {/* Predicted Rank - Opinion Market */}
+      {/* Predicted Rank */}
       <div className="mb-6 p-4 bg-gradient-to-r from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-lg">
         <label className="block text-sm font-medium text-purple-300 mb-2">
           🔮 Opinion Market: Predict This Week's Rank
         </label>
         <p className="text-xs text-gray-400 mb-3">
-          Where will this project rank in {formData.category} by end of week? Stake to earn if you're right!
+          Where will this project rank in {formData.category} by end of week?
         </p>
         <div className="grid grid-cols-5 gap-2">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rank) => (
@@ -244,11 +316,6 @@ export function ReviewForm() {
             </button>
           ))}
         </div>
-        {formData.predictedRank && (
-          <p className="text-xs text-purple-300 mt-2">
-            You predict this will be <strong>#{formData.predictedRank}</strong> in {formData.category} rankings
-          </p>
-        )}
       </div>
 
       {/* Content */}
@@ -257,7 +324,7 @@ export function ReviewForm() {
           Review Content
         </label>
         <textarea
-          placeholder="Share your analysis... Why will this project rank where you predict? (minimum 10 characters)"
+          placeholder="Share your analysis... (minimum 10 characters)"
           value={formData.content}
           onChange={(e) => setFormData({ ...formData, content: e.target.value })}
           rows={5}
@@ -271,10 +338,10 @@ export function ReviewForm() {
       {/* Stake Amount */}
       <div className="mb-8">
         <label className="block text-sm font-medium text-gray-400 mb-2">
-          Stake Amount (Optional)
+          Stake Amount
         </label>
         <p className="text-xs text-gray-500 mb-3">
-          Stake $OPEN to boost your reputation and prove you're serious
+          Stake KIND tokens to prove you're serious
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {STAKE_OPTIONS.map((option) => (
@@ -298,25 +365,29 @@ export function ReviewForm() {
       {/* Submit */}
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isCreating || needsApproval || !hasBalance}
         className={`w-full py-4 rounded-lg font-semibold text-lg transition ${
-          isSubmitting
+          isCreating || needsApproval || !hasBalance
             ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
             : 'bg-kindred-primary hover:bg-orange-600 text-white'
         }`}
       >
-        {isSubmitting ? (
+        {isCreating ? (
           <span className="flex items-center justify-center gap-2">
             <span className="animate-spin">⏳</span>
-            Submitting...
+            Minting Review NFT...
           </span>
+        ) : needsApproval ? (
+          'Approve Tokens First'
+        ) : !hasBalance ? (
+          'Insufficient Balance'
         ) : (
-          'Submit Review'
+          'Submit Review (On-Chain)'
         )}
       </button>
 
       <p className="text-xs text-gray-500 text-center mt-4">
-        By submitting, you agree that your review will be minted as an NFT on-chain.
+        By submitting, your review will be minted as an NFT on-chain.
       </p>
     </form>
   )
