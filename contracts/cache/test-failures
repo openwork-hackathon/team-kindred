@@ -1,1 +1,1 @@
-test_FullFlow_NewUserJourney
+test_GetScoreBreakdown_WithPagination|test_GetScore_DoSMitigation|test_HasExceededScanLimit_AboveLimit

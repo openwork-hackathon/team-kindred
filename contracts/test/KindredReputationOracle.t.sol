@@ -26,9 +26,10 @@ contract KindredReputationOracleTest is Test {
         oracle = new KindredReputationOracle(address(commentNFT));
         
         // Mint tokens to test users
-        kindToken.adminMint(alice, 10000e18);
-        kindToken.adminMint(bob, 10000e18);
-        kindToken.adminMint(charlie, 10000e18);
+        // C-1 tests need more tokens (150 comments * 100 = 15,000)
+        kindToken.adminMint(alice, 20000e18);
+        kindToken.adminMint(bob, 20000e18);
+        kindToken.adminMint(charlie, 20000e18);
         
         // Approve comment contract
         vm.prank(alice);
@@ -336,5 +337,80 @@ contract KindredReputationOracleTest is Test {
         // Base 500 + 10 - 200 = 310
         uint256 score = oracle.getScore(alice);
         assertLt(score, 600, "Should be in low trust tier");
+    }
+    
+    // ============================================
+    // C-1 MITIGATION TESTS (DoS Prevention)
+    // ============================================
+    
+    /// @notice Test that hasExceededScanLimit works correctly
+    function test_HasExceededScanLimit_BelowLimit() public {
+        // Create 50 comments (below limit)
+        vm.startPrank(alice);
+        for (uint256 i = 0; i < 50; i++) {
+            commentNFT.createComment(projectA, "Content", "", 0, 0);
+        }
+        vm.stopPrank();
+        
+        (bool exceeded, uint256 total, uint256 scanned) = oracle.hasExceededScanLimit(alice);
+        assertFalse(exceeded, "Should not exceed limit");
+        assertEq(total, 50, "Should have 50 total comments");
+        assertEq(scanned, 50, "Should scan all 50 comments");
+    }
+    
+    /// @notice Test pagination kicks in at 100+ comments
+    function test_HasExceededScanLimit_AboveLimit() public {
+        // Create 150 comments (above limit)
+        vm.startPrank(alice);
+        for (uint256 i = 0; i < 150; i++) {
+            commentNFT.createComment(projectA, "Content", "", 0, 0);
+        }
+        vm.stopPrank();
+        
+        (bool exceeded, uint256 total, uint256 scanned) = oracle.hasExceededScanLimit(alice);
+        assertTrue(exceeded, "Should exceed limit");
+        assertEq(total, 150, "Should have 150 total comments");
+        assertEq(scanned, 100, "Should only scan 100 comments");
+    }
+    
+    /// @notice Test that getScore doesn't revert with many comments (DoS mitigation)
+    function test_GetScore_DoSMitigation() public {
+        // Create 150 comments (would cause DoS in old version)
+        vm.startPrank(alice);
+        for (uint256 i = 0; i < 150; i++) {
+            commentNFT.createComment(projectA, "Content", "", 0, 0);
+        }
+        vm.stopPrank();
+        
+        // Should NOT revert (this is the fix)
+        uint256 score = oracle.getScore(alice);
+        
+        // Score should be calculated from 100 comments only
+        // Base 500 + (100 * 10) = 1500, capped at 1000
+        assertEq(score, 1000, "Should cap at MAX_SCORE");
+    }
+    
+    /// @notice Test getScoreBreakdown with pagination
+    function test_GetScoreBreakdown_WithPagination() public {
+        // Create 150 comments
+        vm.startPrank(alice);
+        for (uint256 i = 0; i < 150; i++) {
+            commentNFT.createComment(projectA, "Content", "", 0, 0);
+        }
+        vm.stopPrank();
+        
+        (
+            uint256 baseScore,
+            uint256 commentCount,
+            uint256 totalUpvotes,
+            uint256 totalDownvotes,
+            uint256 totalUnlocks,
+            uint256 finalScore
+        ) = oracle.getScoreBreakdown(alice);
+        
+        assertEq(baseScore, 500, "Base score should be 500");
+        assertEq(commentCount, 150, "Should report total comment count");
+        assertEq(finalScore, 1000, "Should cap at MAX_SCORE");
+        // Note: Stats are from only 100 scanned comments
     }
 }

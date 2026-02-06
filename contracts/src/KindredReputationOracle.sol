@@ -41,6 +41,9 @@ contract KindredReputationOracle {
     uint256 public constant POINTS_PER_UNLOCK = 5;
     uint256 public constant NORMALIZATION_FACTOR = 1e18;
     
+    /// @notice Maximum comments to scan to prevent DoS (C-1 mitigation)
+    uint256 public constant MAX_COMMENTS_SCAN = 100;
+    
     // ============ Modifiers ============
     modifier onlyOwner() {
         require(msg.sender == owner, "Not owner");
@@ -60,6 +63,10 @@ contract KindredReputationOracle {
      * @notice Calculate reputation score for an account
      * @param account The address to check
      * @return score The calculated reputation (0-1000)
+     * 
+     * @dev C-1 FIX: Only scans up to MAX_COMMENTS_SCAN (100) most recent comments
+     * to prevent DoS attacks. Users with >100 comments will have incomplete scores.
+     * Post-hackathon: Implement incremental score storage.
      */
     function getScore(address account) external view returns (uint256 score) {
         // Blocked accounts always return 0
@@ -75,10 +82,16 @@ contract KindredReputationOracle {
             return BASE_SCORE; // No activity = default score
         }
         
-        // Calculate total reputation from all comments
+        // C-1 MITIGATION: Limit scan to prevent DoS
+        // Only scan most recent MAX_COMMENTS_SCAN comments
+        uint256 scanLimit = commentIds.length > MAX_COMMENTS_SCAN 
+            ? MAX_COMMENTS_SCAN 
+            : commentIds.length;
+        
+        // Calculate total reputation from scanned comments
         int256 totalPoints = 0;
         
-        for (uint256 i = 0; i < commentIds.length; i++) {
+        for (uint256 i = 0; i < scanLimit; i++) {
             KindredComment.Comment memory comment = kindredComment.getComment(commentIds[i]);
             
             // Points for creating comment
@@ -119,6 +132,26 @@ contract KindredReputationOracle {
         return blocked[account];
     }
     
+    /**
+     * @notice Check if user has exceeded comment scan limit
+     * @param account The address to check
+     * @return exceeded True if user has more than MAX_COMMENTS_SCAN comments
+     * @return totalComments Total number of comments
+     * @return scannedComments Number of comments that will be scanned
+     * 
+     * @dev Use this to warn users their score may be incomplete
+     */
+    function hasExceededScanLimit(address account) external view returns (
+        bool exceeded,
+        uint256 totalComments,
+        uint256 scannedComments
+    ) {
+        uint256[] memory commentIds = kindredComment.getUserComments(account);
+        totalComments = commentIds.length;
+        scannedComments = totalComments > MAX_COMMENTS_SCAN ? MAX_COMMENTS_SCAN : totalComments;
+        exceeded = totalComments > MAX_COMMENTS_SCAN;
+    }
+    
     // ============ Admin Functions ============
     
     /**
@@ -149,11 +182,13 @@ contract KindredReputationOracle {
      * @notice Preview score calculation details for debugging
      * @param account The address to analyze
      * @return baseScore The starting score
-     * @return commentCount Number of comments
-     * @return totalUpvotes Total upvote value received
-     * @return totalDownvotes Total downvote value received
-     * @return totalUnlocks Total premium unlocks
+     * @return commentCount Number of comments (total, not scanned)
+     * @return totalUpvotes Total upvote value received (from scanned comments)
+     * @return totalDownvotes Total downvote value received (from scanned comments)
+     * @return totalUnlocks Total premium unlocks (from scanned comments)
      * @return finalScore The final calculated score
+     * 
+     * @dev C-1 FIX: Only scans up to MAX_COMMENTS_SCAN comments
      */
     function getScoreBreakdown(address account) external view returns (
         uint256 baseScore,
@@ -171,7 +206,12 @@ contract KindredReputationOracle {
         uint256[] memory commentIds = kindredComment.getUserComments(account);
         commentCount = commentIds.length;
         
-        for (uint256 i = 0; i < commentIds.length; i++) {
+        // C-1 MITIGATION: Limit scan to prevent DoS
+        uint256 scanLimit = commentIds.length > MAX_COMMENTS_SCAN 
+            ? MAX_COMMENTS_SCAN 
+            : commentIds.length;
+        
+        for (uint256 i = 0; i < scanLimit; i++) {
             KindredComment.Comment memory comment = kindredComment.getComment(commentIds[i]);
             totalUpvotes += comment.upvoteValue;
             totalDownvotes += comment.downvoteValue;
@@ -179,8 +219,9 @@ contract KindredReputationOracle {
         }
         
         // Calculate final score (same logic as getScore)
+        // Note: Uses scanned count, not total count
         int256 totalPoints = 0;
-        totalPoints += int256(commentCount * POINTS_PER_COMMENT);
+        totalPoints += int256(scanLimit * POINTS_PER_COMMENT);
         totalPoints += int256(totalUpvotes / NORMALIZATION_FACTOR);
         totalPoints -= int256(totalDownvotes / NORMALIZATION_FACTOR);
         totalPoints += int256(totalUnlocks * POINTS_PER_UNLOCK);
