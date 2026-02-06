@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
         contentType: contentType || 'review',
         userAddress: normalizedAddress,
         txHash,
-        paidAmount: MIN_PAYMENT.toString(),
+        paidAmount: MIN_PAYMENT_USDC.toString(),
       },
     })
 
