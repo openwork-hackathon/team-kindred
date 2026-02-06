@@ -21,11 +21,11 @@ export function LeaderboardPreview() {
       try {
         const res = await fetch('/api/leaderboard?category=k/defi&limit=5')
         const data = await res.json()
-        const entries = (data.entries || []).map((e: any, i: number) => ({
-          rank: i + 1,
+        const entries = (data.leaderboard || []).map((e: any) => ({
+          rank: e.rank,
           name: e.projectName,
-          ticker: e.projectName,
-          score: e.score || 0,
+          ticker: e.projectName.toUpperCase().slice(0, 6),
+          score: e.avgRating || 0,
           change: e.weeklyChange > 0 ? `+${e.weeklyChange}%` : e.weeklyChange < 0 ? `${e.weeklyChange}%` : '0%',
         }))
         setItems(entries)

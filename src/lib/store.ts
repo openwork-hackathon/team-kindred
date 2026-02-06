@@ -69,7 +69,7 @@ export const useStore = create<AppState>()(
       projects: [],
       reviews: [],
       communities: [],
-      userStakedBalance: 1000, // Give user some initial mock tokens to test staking
+      userStakedBalance: 0, // Real balance from wallet
       joinedCommunityIds: [],
       loadingOperations: {},
 
