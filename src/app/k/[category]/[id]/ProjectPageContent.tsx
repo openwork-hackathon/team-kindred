@@ -259,7 +259,7 @@ export function ProjectPageContent({
           {/* Funding & Risk Info Grid - Hide for k/gourmet */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             {/* Funding Info - Not for restaurants */}
-            {data.funding && category !== 'k/gourmet' && (
+            {data.funding && category !== 'gourmet' && (
               <div className="p-4 rounded-xl bg-[#1a1a1d] border border-green-500/20">
                 <h3 className="font-bold text-green-400 mb-3 flex items-center gap-2">
                   💰 Funding Information
@@ -309,7 +309,7 @@ export function ProjectPageContent({
             )}
 
             {/* Restaurant Info - For k/gourmet only */}
-            {category === 'k/gourmet' && (
+            {category === 'gourmet' && (
               <div className="p-4 rounded-xl bg-[#1a1a1d] border border-orange-500/20">
                 <h3 className="font-bold text-orange-400 mb-3 flex items-center gap-2">
                   🍽️ Restaurant Info
@@ -428,7 +428,7 @@ export function ProjectPageContent({
             )}
 
             {/* Ma'at Risk Analysis - Hide for k/gourmet (restaurants don't need security audits) */}
-            {category !== 'k/gourmet' && (data.riskWarnings?.length > 0 || data.audits?.length > 0) && (
+            {category !== 'gourmet' && (data.riskWarnings?.length > 0 || data.audits?.length > 0) && (
               <div className="p-4 rounded-xl bg-[#1a1a1d] border border-yellow-500/20">
                 <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
                   ⚠️ Ma'at Risk Analysis
