@@ -221,8 +221,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search projects, reviews, or users..."
-              className="flex-1 bg-transparent text-white placeholder:text-[#6b6b70] outline-none"
+              placeholder="Search projects, Twitter URLs, websites, or addresses..."
+              className="flex-1 bg-transparent text-white placeholder:text-[#6b6b70] outline-none text-sm"
             />
             {query && (
               <button
@@ -236,6 +236,16 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               ESC
             </kbd>
           </div>
+
+          {/* Search Hint */}
+          {query.length === 0 && (
+            <div className="px-4 py-3 border-b border-[#1f1f23]">
+              <p className="text-xs text-[#6b6b70]">
+                💡 <span className="text-[#adadb0]">Try:</span> Project names, Twitter handles (@Uniswap), 
+                URLs (uniswap.org), or contract addresses (0x...)
+              </p>
+            </div>
+          )}
 
           {/* Results */}
           {query.length >= 2 && (

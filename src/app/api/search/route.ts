@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { analyzeProject } from '@/app/actions/analyze'
+import { parseSearchQuery, toMaatQuery } from '@/lib/url-parser'
 
 export const dynamic = 'force-dynamic'
 
 // GET /api/search?q=uniswap&type=all|projects|reviews|users
+// Supports:
+// - Project names: "Uniswap"
+// - Twitter URLs: https://twitter.com/Uniswap
+// - Project websites: https://uniswap.org
+// - Contract addresses: 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const query = searchParams.get('q')?.trim()
+  const rawQuery = searchParams.get('q')?.trim()
   const type = searchParams.get('type') || 'all'
   const limit = parseInt(searchParams.get('limit') || '10')
   const analyze = searchParams.get('analyze') === 'true' // Trigger AI analysis
 
-  if (!query || query.length < 2) {
+  if (!rawQuery || rawQuery.length < 2) {
     return NextResponse.json({ 
       error: 'Query must be at least 2 characters',
       projects: [],
@@ -20,6 +26,12 @@ export async function GET(request: NextRequest) {
       users: [],
     }, { status: 400 })
   }
+
+  // Parse query to extract project identifier (handles URLs, addresses, names)
+  const parsed = parseSearchQuery(rawQuery)
+  const query = parsed.value
+  
+  console.log(`[Search] Parsed "${rawQuery}" as ${parsed.type}: "${query}"`)
 
   const results: {
     projects: any[]
@@ -114,28 +126,41 @@ export async function GET(request: NextRequest) {
 
     // Trigger AI Analysis if requested and no project matches found
     if (analyze && results.projects.length === 0) {
-      console.log(`[Search] No DB match for "${query}", triggering Ma'at analysis...`)
+      const maatQuery = toMaatQuery(parsed)
+      console.log(`[Search] No DB match for "${rawQuery}", triggering Ma'at analysis with: "${maatQuery}"`)
       try {
-        const analysis = await analyzeProject(query)
+        const analysis = await analyzeProject(maatQuery)
         results.aiAnalysis = {
           source: 'maat',
           cached: analysis._cached || false,
+          queryType: parsed.type,
           data: analysis,
         }
         
-        // Optionally create project entry for future searches
-        if (analysis.status !== 'UNSTABLE' && analysis.name !== query) {
-          // Create or update project in DB for faster future lookups
+        // Create project entry for future searches
+        if (analysis.name) {
+          const projectAddress = parsed.type === 'address' 
+            ? parsed.value.toLowerCase() 
+            : analysis.name.toLowerCase().replace(/\s+/g, '-')
+          
           await prisma.project.upsert({
-            where: { address: query.toLowerCase() },
-            update: { name: analysis.name, description: analysis.summary },
+            where: { address: projectAddress },
+            update: { 
+              name: analysis.name, 
+              description: analysis.summary,
+              image: analysis.image,
+              category: mapTypeToCategory(analysis.type),
+            },
             create: {
-              address: query.toLowerCase(),
+              address: projectAddress,
               name: analysis.name,
               category: mapTypeToCategory(analysis.type),
               description: analysis.summary,
+              image: analysis.image,
             },
           })
+          
+          console.log(`[Search] Created project: ${analysis.name} (${projectAddress})`)
         }
       } catch (err) {
         console.error('[Search] AI analysis failed:', err)
