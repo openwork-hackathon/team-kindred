@@ -5,15 +5,30 @@
  */
 
 import { useState, useCallback } from 'react'
-import { useAccount, useSignMessage, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi'
-import { parseEther } from 'viem'
+import { useAccount, useSignMessage, useSendTransaction, useWriteContract } from 'wagmi'
+import { parseEther, encodeFunctionData } from 'viem'
+
+// USDC ERC20 ABI (only transfer function)
+const ERC20_ABI = [
+  {
+    name: 'transfer',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+] as const
 
 interface PaymentRequirements {
   accepts: 'ethereum' | 'base'
   chainId: number
   payTo: string
   maxAmountRequired: string
-  asset: string
+  asset: 'native' | 'USDC'
+  assetAddress?: string // Token contract for USDC
   assetDecimals: number
   expires: number
   contentId: string
@@ -32,6 +47,7 @@ export function useX402(contentId: string, contentType: string = 'review') {
   const { address, isConnected } = useAccount()
   const { signMessageAsync } = useSignMessage()
   const { sendTransactionAsync } = useSendTransaction()
+  const { writeContractAsync } = useWriteContract()
   
   const [state, setState] = useState<X402State>({
     isLoading: false,
@@ -87,6 +103,7 @@ export function useX402(contentId: string, contentType: string = 'review') {
 
   /**
    * Pay to unlock content (on-chain transaction)
+   * Supports both USDC (ERC20) and native ETH
    */
   const payOnChain = useCallback(async () => {
     if (!isConnected || !address || !state.requirements) {
@@ -97,13 +114,24 @@ export function useX402(contentId: string, contentType: string = 'review') {
     setState(s => ({ ...s, isLoading: true, error: null }))
 
     try {
-      const { payTo, maxAmountRequired } = state.requirements
+      const { payTo, maxAmountRequired, asset, assetAddress } = state.requirements
+      let txHash: string
       
-      // Send ETH transaction
-      const txHash = await sendTransactionAsync({
-        to: payTo as `0x${string}`,
-        value: BigInt(maxAmountRequired),
-      })
+      if (asset === 'USDC' && assetAddress) {
+        // USDC payment via ERC20 transfer
+        txHash = await writeContractAsync({
+          address: assetAddress as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'transfer',
+          args: [payTo as `0x${string}`, BigInt(maxAmountRequired)],
+        })
+      } else {
+        // Native ETH payment
+        txHash = await sendTransactionAsync({
+          to: payTo as `0x${string}`,
+          value: BigInt(maxAmountRequired),
+        })
+      }
 
       // Submit payment proof to backend
       const res = await fetch('/api/x402', {
@@ -135,7 +163,7 @@ export function useX402(contentId: string, contentType: string = 'review') {
       setState(s => ({ ...s, isLoading: false, error: message }))
       return { success: false, error: message }
     }
-  }, [isConnected, address, state.requirements, contentId, contentType, sendTransactionAsync])
+  }, [isConnected, address, state.requirements, contentId, contentType, sendTransactionAsync, writeContractAsync])
 
   /**
    * Pay with signature (off-chain, for free tier or testnet)
@@ -184,12 +212,20 @@ export function useX402(contentId: string, contentType: string = 'review') {
   }, [isConnected, address, contentId, contentType, signMessageAsync])
 
   /**
-   * Format price for display
+   * Format price for display (handles both USDC and ETH)
    */
   const formatPrice = useCallback(() => {
     if (!state.requirements) return '0'
-    const wei = BigInt(state.requirements.maxAmountRequired)
-    return (Number(wei) / 1e18).toFixed(6)
+    const amount = BigInt(state.requirements.maxAmountRequired)
+    const decimals = state.requirements.assetDecimals
+    return (Number(amount) / Math.pow(10, decimals)).toFixed(decimals === 6 ? 2 : 6)
+  }, [state.requirements])
+
+  /**
+   * Get asset symbol for display
+   */
+  const getAssetSymbol = useCallback(() => {
+    return state.requirements?.asset === 'USDC' ? 'USDC' : 'ETH'
   }, [state.requirements])
 
   return {
@@ -198,5 +234,6 @@ export function useX402(contentId: string, contentType: string = 'review') {
     payOnChain,
     payWithSignature,
     formatPrice,
+    getAssetSymbol,
   }
 }

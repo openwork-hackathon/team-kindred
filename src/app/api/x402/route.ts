@@ -18,8 +18,17 @@ export const dynamic = 'force-dynamic'
 // Treasury address for receiving payments
 const TREASURY_ADDRESS = process.env.TREASURY_ADDRESS || '0x5FbDB2315678afecb367f032d93F642f64180aa3'
 
-// Minimum payment amount (in wei) - 0.001 ETH
-const MIN_PAYMENT = BigInt('1000000000000000')
+// USDC contract addresses
+const USDC_ADDRESSES: Record<number, string> = {
+  8453: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Base Mainnet
+  84532: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // Base Sepolia
+}
+
+// Minimum payment amount - $0.10 USDC (6 decimals)
+const MIN_PAYMENT_USDC = BigInt('100000') // 0.1 USDC
+
+// Legacy ETH support (in wei) - 0.001 ETH
+const MIN_PAYMENT_ETH = BigInt('1000000000000000')
 
 // Content types that can be gated
 type GatedContentType = 'review' | 'analysis' | 'report'
@@ -29,7 +38,8 @@ interface PaymentRequirements {
   chainId: number
   payTo: string
   maxAmountRequired: string
-  asset: string // native or token address
+  asset: 'native' | 'USDC' // native ETH or USDC
+  assetAddress?: string // Token contract address (for USDC)
   assetDecimals: number
   expires: number // Unix timestamp
   contentId: string
@@ -77,17 +87,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get pricing from content
-    const price = await getContentPrice(contentId, contentType)
+    // Get pricing from content (in USDC, 6 decimals)
+    const priceUsdc = await getContentPriceUsdc(contentId, contentType)
+    const chainId = process.env.NEXT_PUBLIC_CHAIN_ID === '84532' ? 84532 : 8453
     
-    // Generate payment requirements (x402 spec)
+    // Generate payment requirements (x402 spec) - USDC preferred
     const requirements: PaymentRequirements = {
       accepts: 'base',
-      chainId: 8453, // Base Mainnet
+      chainId,
       payTo: TREASURY_ADDRESS,
-      maxAmountRequired: price.toString(),
-      asset: 'native', // ETH on Base
-      assetDecimals: 18,
+      maxAmountRequired: priceUsdc.toString(),
+      asset: 'USDC',
+      assetAddress: USDC_ADDRESSES[chainId],
+      assetDecimals: 6, // USDC has 6 decimals
       expires: Math.floor(Date.now() / 1000) + 3600, // 1 hour
       contentId,
       contentType,
@@ -103,7 +115,7 @@ export async function GET(request: NextRequest) {
       JSON.stringify({
         status: 'payment_required',
         requirements,
-        message: `Payment of ${formatEther(BigInt(price))} ETH required to access this content`,
+        message: `Payment of ${formatUsdc(priceUsdc)} USDC required to access this content`,
       }),
       {
         status: 402,
@@ -204,9 +216,9 @@ export async function POST(request: NextRequest) {
 
 // Helper functions
 
-async function getContentPrice(contentId: string, contentType: GatedContentType): Promise<bigint> {
-  // Default price: 0.001 ETH
-  let price = MIN_PAYMENT
+async function getContentPriceUsdc(contentId: string, contentType: GatedContentType): Promise<bigint> {
+  // Default price: $0.10 USDC
+  let price = MIN_PAYMENT_USDC
 
   if (contentType === 'review') {
     const review = await prisma.review.findUnique({
@@ -214,11 +226,32 @@ async function getContentPrice(contentId: string, contentType: GatedContentType)
       select: { stakeAmount: true },
     })
     // Price based on stake: higher stake = higher unlock price
+    // Assume 1 KIND ≈ $0.01, unlock = 10% of stake value in USDC
+    if (review?.stakeAmount) {
+      const stakeKind = BigInt(review.stakeAmount) / BigInt(1e18) // Convert from wei
+      // $0.01 per KIND, 10% for unlock, min $0.10
+      const priceInCents = stakeKind / BigInt(10)
+      price = priceInCents * BigInt(10000) // Convert cents to USDC (6 decimals)
+      if (price < MIN_PAYMENT_USDC) price = MIN_PAYMENT_USDC
+    }
+  }
+
+  return price
+}
+
+// Legacy ETH pricing (for backwards compatibility)
+async function getContentPriceEth(contentId: string, contentType: GatedContentType): Promise<bigint> {
+  let price = MIN_PAYMENT_ETH
+
+  if (contentType === 'review') {
+    const review = await prisma.review.findUnique({
+      where: { id: contentId },
+      select: { stakeAmount: true },
+    })
     if (review?.stakeAmount) {
       const stake = BigInt(review.stakeAmount)
-      // Unlock price = 10% of stake, min 0.001 ETH
       price = stake / BigInt(10)
-      if (price < MIN_PAYMENT) price = MIN_PAYMENT
+      if (price < MIN_PAYMENT_ETH) price = MIN_PAYMENT_ETH
     }
   }
 
@@ -269,4 +302,8 @@ async function verifyTransaction(
 
 function formatEther(wei: bigint): string {
   return (Number(wei) / 1e18).toFixed(6)
+}
+
+function formatUsdc(amount: bigint): string {
+  return (Number(amount) / 1e6).toFixed(2)
 }

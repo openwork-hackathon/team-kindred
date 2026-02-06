@@ -39,7 +39,8 @@ export function PaywallContent({
     error,
     checkAccess, 
     payOnChain,
-    formatPrice 
+    formatPrice,
+    getAssetSymbol,
   } = useX402(reviewId, 'review')
   
   const [showFullContent, setShowFullContent] = useState(initialUnlocked)
@@ -159,7 +160,7 @@ export function PaywallContent({
                     ) : (
                       <span className="flex items-center gap-2">
                         <Unlock className="w-4 h-4" />
-                        Unlock for {requirements ? formatPrice() : unlockPrice} ETH
+                        Unlock for {requirements ? `${formatPrice()} ${getAssetSymbol()}` : `${unlockPrice} ETH`}
                       </span>
                     )}
                   </button>
