@@ -152,7 +152,7 @@ export function ReviewForm() {
   
   // Handle approval completion - auto-proceed to comment creation
   useEffect(() => {
-    if (approvalDone && isSubmitting && !commentSuccess) {
+    if (approvalDone && isSubmitting && !commentSuccess && formData.targetAddress) {
       // Approval done, now create comment
       createComment({
         targetAddress: formData.targetAddress as Address,
@@ -163,7 +163,7 @@ export function ReviewForm() {
         setIsSubmitting(false)
       })
     }
-  }, [approvalDone, isSubmitting, commentSuccess])
+  }, [approvalDone, isSubmitting, commentSuccess, formData.targetAddress, formData.content, formData.stakeAmount, createComment])
 
   if (!isConnected) {
     return (
