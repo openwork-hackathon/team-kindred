@@ -2,6 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { BarChart3, TrendingUp, Flame, Coins, Bot, Layers } from 'lucide-react'
+
+const CATEGORY_TABS = [
+  { id: 'k/defi', label: 'DeFi', icon: BarChart3 },
+  { id: 'k/perp-dex', label: 'Perp DEX', icon: TrendingUp },
+  { id: 'k/prediction', label: 'Prediction', icon: Flame },
+  { id: 'k/ai', label: 'AI', icon: Bot },
+  { id: 'k/memecoin', label: 'Meme', icon: Coins },
+  { id: 'k/infra', label: 'Infra', icon: Layers },
+]
 
 interface CommunityInfoProps {
   category: string
@@ -136,6 +146,31 @@ export function CommunityInfo({ category }: CommunityInfoProps) {
               <span>No shillspam or bots</span>
             </li>
           </ul>
+        </div>
+
+        {/* Categories Section */}
+        <div className="p-4 border-t border-[#1f1f23]">
+          <h3 className="font-semibold text-sm mb-3">Browse Categories</h3>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_TABS.map((cat) => {
+              const Icon = cat.icon
+              const isActive = category === cat.id
+              return (
+                <Link
+                  key={cat.id}
+                  href={`/leaderboard?category=${cat.id}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    isActive
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      : 'text-gray-400 hover:text-white hover:bg-[#1a1a1d] border border-transparent'
+                  }`}
+                >
+                  <Icon className="w-3 h-3" />
+                  {cat.label}
+                </Link>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
