@@ -1,0 +1,11 @@
+# Kindred - Robots.txt
+# Allow all search engines to crawl
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://kindred.community/sitemap.xml
+
+# Crawl-delay (optional, for politeness)
+Crawl-delay: 1
