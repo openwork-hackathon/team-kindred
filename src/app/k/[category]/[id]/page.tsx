@@ -169,7 +169,7 @@ export default function ProjectPage() {
                    alt={data.name} 
                    width={96} 
                    height={96}
-                   className="w-full h-full object-cover"
+                   className="absolute inset-0 w-full h-full object-contain p-2"
                  />
                ) : (
                  data.name[0]?.toUpperCase() || '?'
