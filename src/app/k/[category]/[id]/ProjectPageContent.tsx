@@ -90,8 +90,11 @@ export function ProjectPageContent({
     setProjectData(LOADING_PROJECT)
     
     // For restaurants (k/gourmet), use restaurant-specific analysis
+    console.log('[Kindred] Category check:', category, 'Is gourmet?', category === 'gourmet')
     if (category === 'gourmet') {
+      console.log('[Kindred] Calling analyzeRestaurant for:', projectId)
       analyzeRestaurant(projectId).then((result) => {
+        console.log('[Kindred] analyzeRestaurant result:', result ? 'got data' : 'null')
         if (result) {
           setProjectData({
             ...LOADING_PROJECT,
@@ -117,7 +120,33 @@ export function ProjectPageContent({
             criticalReviews: result.criticalReviews,
             maAtStatus: result.status,
           })
+        } else {
+          // Fallback: show basic info from database
+          console.log('[Kindred] analyzeRestaurant returned null, showing basic info')
+          setProjectData({
+            ...LOADING_PROJECT,
+            id: projectId,
+            name: initialProject?.name || projectId,
+            category: 'k/gourmet',
+            aiVerdict: 'neutral',
+            aiScore: 0,
+            aiSummary: '正在載入餐廳資訊... 請稍候或重新整理頁面。',
+            keyPoints: [],
+            maAtStatus: 'UNSTABLE',
+          })
         }
+      }).catch((err) => {
+        console.error('[Kindred] analyzeRestaurant error:', err)
+        setProjectData({
+          ...LOADING_PROJECT,
+          id: projectId,
+          name: initialProject?.name || projectId,
+          category: 'k/gourmet',
+          aiVerdict: 'neutral',
+          aiScore: 0,
+          aiSummary: '餐廳分析載入失敗。請稍候再試。',
+          keyPoints: [],
+        })
       })
       return
     }

@@ -33,8 +33,11 @@ export interface RestaurantAnalysis {
 }
 
 export async function analyzeRestaurant(query: string): Promise<RestaurantAnalysis | null> {
+  console.log('[analyzeRestaurant] Starting analysis for:', query)
+  console.log('[analyzeRestaurant] GEMINI_API_KEY available:', !!GEMINI_API_KEY)
+  
   if (!GEMINI_API_KEY) {
-    console.error('GEMINI_API_KEY not configured')
+    console.error('[analyzeRestaurant] GEMINI_API_KEY not configured')
     return null
   }
 
