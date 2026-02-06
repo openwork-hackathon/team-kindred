@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { TrendingUp, TrendingDown, Minus, ChevronDown, Flame, Clock, Award, BarChart3, ArrowUpRight } from 'lucide-react'
-
-import { useStore } from '@/lib/store'
+import { TrendingUp, TrendingDown, Minus, Flame, Clock, Award, BarChart3, ArrowUpRight } from 'lucide-react'
 
 type Category = 'all' | 'k/defi' | 'k/perp-dex' | 'k/ai' | 'k/memecoin'
 
@@ -17,14 +15,33 @@ const CATEGORIES = [
   { id: 'k/memecoin' as Category, label: 'Memecoins', icon: Clock },
 ]
 
+const CATEGORY_COLORS: Record<string, string> = {
+  'k/defi': '#8b5cf6',
+  'k/perp-dex': '#3b82f6',
+  'k/ai': '#10b981',
+  'k/memecoin': '#f59e0b',
+  'k/restaurants': '#ef4444',
+}
+
+interface LeaderboardEntry {
+  rank: number
+  projectAddress: string
+  projectName: string
+  category: string
+  avgRating: number
+  reviewCount: number
+  totalStaked: string
+  weeklyChange: number
+  predictedRank: number | null
+}
+
 function formatNumber(n: number): string {
-  if (n === undefined) return '0'
+  if (n === undefined || isNaN(n)) return '0'
   if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`
   if (n >= 1000) return `${(n / 1000).toFixed(0)}K`
   return n.toString()
 }
 
-// Helper Components
 function ChangeIndicator({ value }: { value: number }) {
   if (value > 0) return <div className="flex items-center text-green-400 text-xs font-bold gap-0.5"><TrendingUp className="w-3 h-3" />+{value}%</div>
   if (value < 0) return <div className="flex items-center text-red-400 text-xs font-bold gap-0.5"><TrendingDown className="w-3 h-3" />{value}%</div>
@@ -44,14 +61,13 @@ function MindshareBar({ value, maxValue, color }: { value: number, maxValue: num
 }
 
 function SentimentDot({ value }: { value: number }) {
-  // Value 0-100
   let color = 'bg-gray-500'
-  if (value >= 66) color = 'bg-green-500'
-  else if (value >= 33) color = 'bg-yellow-500'
+  if (value >= 4) color = 'bg-green-500'
+  else if (value >= 3) color = 'bg-yellow-500'
   else color = 'bg-red-500'
   
   return (
-    <div className={`w-2 h-2 rounded-full ${color}`} title={`Sentiment: ${value}`} />
+    <div className={`w-2 h-2 rounded-full ${color}`} title={`Rating: ${value}`} />
   )
 }
 
@@ -61,6 +77,8 @@ export function MindshareBoard() {
   
   const [category, setCategory] = useState<Category>('all')
   const [timeRange, setTimeRange] = useState<string>('7d')
+  const [projects, setProjects] = useState<LeaderboardEntry[]>([])
+  const [loading, setLoading] = useState(true)
   
   // Sync state with URL params
   useEffect(() => {
@@ -71,27 +89,50 @@ export function MindshareBoard() {
     }
   }, [urlCategory])
 
-  // Use global dynamic store
-  const projects = useStore(state => state.projects)
+  // Fetch from API
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      setLoading(true)
+      try {
+        const url = category === 'all' 
+          ? '/api/leaderboard?limit=50'
+          : `/api/leaderboard?category=${category}&limit=50`
+        const res = await fetch(url)
+        const data = await res.json()
+        setProjects(data.leaderboard || [])
+      } catch (error) {
+        console.error('Failed to fetch leaderboard:', error)
+        setProjects([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchLeaderboard()
+  }, [category])
 
-  // Map store projects to UI format (if needed) or use directly
-  // The store uses 'score' as main metric, we can map to mindshare for UI compat or rename
-  const uiProjects = projects.map((p, index) => ({
-    ...p,
-    rank: index + 1, // Fix missing rank
-    mindshare: p.score * 20, // Map 5.0 score to 100% scale for visualization if needed, or just use raw
-    mindshareChange: 0, // No historical data in lightweight store yet
-    staked: 0, // Mock for now
-    sentiment: p.score * 20,
-    color: '#8b5cf6' // Default purple
-  }))
+  // Map API data to UI format
+  const uiProjects = projects.map((p, index) => {
+    const color = CATEGORY_COLORS[p.category] || '#8b5cf6'
+    const mindshare = p.avgRating * 20 // Convert 5-star to percentage
+    const staked = parseInt(p.totalStaked || '0') / 1e18 // Convert from wei
+    
+    return {
+      id: p.projectAddress,
+      name: p.projectName,
+      ticker: p.projectName.toUpperCase().slice(0, 4),
+      category: p.category,
+      rank: p.rank,
+      mindshare,
+      mindshareChange: p.weeklyChange,
+      staked,
+      reviewsCount: p.reviewCount,
+      sentiment: p.avgRating,
+      color,
+    }
+  })
 
-  const filtered = category === 'all' 
-    ? uiProjects 
-    : uiProjects.filter(e => e.category === category) // Note: Store needs category field on Project
-
-  const maxMindshare = Math.max(...filtered.map(e => e.mindshare), 100)
-  const totalMindshare = filtered.reduce((sum, e) => sum + e.mindshare, 0)
+  const maxMindshare = Math.max(...uiProjects.map(e => e.mindshare), 100)
+  const totalMindshare = uiProjects.reduce((sum, e) => sum + e.mindshare, 0)
 
   return (
     <div>
@@ -121,34 +162,36 @@ export function MindshareBoard() {
       </div>
 
       {/* Top Mindshare Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        {filtered.slice(0, 4).map((entry) => (
-          <div key={entry.name} className="bg-[#111113] border border-[#1f1f23] rounded-xl p-4 hover:border-[#2a2a2e] transition-colors">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style={{ backgroundColor: entry.color + '20', color: entry.color }}>
-                  {entry.ticker.slice(0, 2)}
+      {!loading && uiProjects.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+          {uiProjects.slice(0, 4).map((entry) => (
+            <div key={entry.id} className="bg-[#111113] border border-[#1f1f23] rounded-xl p-4 hover:border-[#2a2a2e] transition-colors">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style={{ backgroundColor: entry.color + '20', color: entry.color }}>
+                    {entry.ticker.slice(0, 2)}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">{entry.ticker}</div>
+                    <div className="text-xs text-[#6b6b70]">#{entry.rank}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm font-semibold">{entry.ticker}</div>
-                  <div className="text-xs text-[#6b6b70]">#{entry.rank}</div>
-                </div>
+                <ChangeIndicator value={entry.mindshareChange} />
               </div>
-              <ChangeIndicator value={entry.mindshareChange} />
+              <div className="text-2xl font-bold mb-1" style={{ color: entry.color }}>
+                {entry.mindshare.toFixed(1)}%
+              </div>
+              <MindshareBar value={entry.mindshare} color={entry.color} maxValue={maxMindshare} />
             </div>
-            <div className="text-2xl font-bold mb-1" style={{ color: entry.color }}>
-              {entry.mindshare.toFixed(1)}%
-            </div>
-            <MindshareBar value={entry.mindshare} color={entry.color} maxValue={maxMindshare} />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Category Tabs */}
       <div className="flex items-center gap-1 mb-6 overflow-x-auto pb-2">
         {CATEGORIES.map((cat) => {
           const Icon = cat.icon
-          const href = cat.id === 'all' ? '/leaderboard' : `/k/${cat.id.replace('k/', '')}`
+          const href = cat.id === 'all' ? '/leaderboard' : `/leaderboard?category=${cat.id}`
           
           return (
             <Link
@@ -177,17 +220,27 @@ export function MindshareBoard() {
           <div className="col-span-1 text-right">Change</div>
           <div className="col-span-1 text-right">Staked</div>
           <div className="col-span-1 text-right">Reviews</div>
-          <div className="col-span-1 text-right">Sentiment</div>
+          <div className="col-span-1 text-right">Rating</div>
           <div className="col-span-1"></div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="px-6 py-8 text-center text-[#6b6b70]">Loading...</div>
+        )}
+
+        {/* Empty State */}
+        {!loading && uiProjects.length === 0 && (
+          <div className="px-6 py-8 text-center text-[#6b6b70]">No projects found</div>
+        )}
+
         {/* Rows */}
-        {filtered.map((entry, i) => (
+        {!loading && uiProjects.map((entry, i) => (
           <Link
-            key={entry.name}
+            key={entry.id}
             href={`/${entry.category}/${entry.id}`}
             className={`grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-[#1a1a1d] transition-colors cursor-pointer ${
-              i !== filtered.length - 1 ? 'border-b border-[#1a1a1d]' : ''
+              i !== uiProjects.length - 1 ? 'border-b border-[#1a1a1d]' : ''
             }`}
           >
             {/* Rank */}
@@ -207,7 +260,7 @@ export function MindshareBoard() {
               </div>
               <div>
                 <div className="text-sm font-semibold">{entry.name}</div>
-                <div className="text-xs text-[#6b6b70]">{entry.ticker}</div>
+                <div className="text-xs text-[#6b6b70]">{entry.category}</div>
               </div>
             </div>
 
@@ -238,7 +291,7 @@ export function MindshareBoard() {
               <span className="text-sm text-[#adadb0]">{entry.reviewsCount}</span>
             </div>
 
-            {/* Sentiment */}
+            {/* Rating */}
             <div className="col-span-1 flex justify-end">
               <SentimentDot value={entry.sentiment} />
             </div>
@@ -253,7 +306,7 @@ export function MindshareBoard() {
 
       {/* Footer Stats */}
       <div className="flex items-center justify-between mt-4 px-2 text-sm text-[#6b6b70]">
-        <span>Showing {filtered.length} projects</span>
+        <span>Showing {uiProjects.length} projects</span>
         <span>Total mindshare tracked: {totalMindshare.toFixed(1)}%</span>
       </div>
     </div>
