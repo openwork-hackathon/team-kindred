@@ -62,10 +62,12 @@ export async function searchPlace(query: string): Promise<PlaceDetails | null> {
       return null
     }
 
-    // Convert photo references to URLs
+    // Convert photo references to URLs (Places API New format)
     const photos = place.photos?.slice(0, 5).map((photo: any) => 
-      `https://places.googleapis.com/v1/${photo.name}/media?maxHeightPx=800&maxWidthPx=1200&key=${GOOGLE_API_KEY}`
+      `https://places.googleapis.com/v1/${photo.name}/media?maxHeightPx=600&maxWidthPx=800&key=${GOOGLE_API_KEY}`
     ) || []
+    
+    console.log('[Google Places] Found', photos.length, 'photos for', place.displayName?.text)
 
     return {
       name: place.displayName?.text || query,
