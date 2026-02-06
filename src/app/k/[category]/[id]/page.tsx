@@ -30,7 +30,9 @@ const LOADING_PROJECT: any = {
 export default function ProjectPage() {
   const params = useParams()
   const idRaw = Array.isArray(params.id) ? params.id[0] : params.id
+  const categoryRaw = Array.isArray(params.category) ? params.category[0] : params.category
   const projectId = idRaw.toLowerCase()
+  const category = `k/${categoryRaw}` // Get category from URL
 
   // Store Hooks
   const addProject = useStore(state => state.addProject)
@@ -329,7 +331,7 @@ export default function ProjectPage() {
 
         {/* Right Sidebar */}
         <div className="hidden xl:block">
-           <CommunityInfo category={data.category} />
+           <CommunityInfo category={category} />
            
            {/* Project Stats Widget */}
            <div className="w-80 mt-6 bg-[#111113] border border-[#1f1f23] rounded-xl p-4">

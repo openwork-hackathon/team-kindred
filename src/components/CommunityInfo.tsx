@@ -9,24 +9,28 @@ interface CommunityInfoProps {
 
 const CATEGORY_META: Record<string, { title: string; description: string }> = {
   'all': {
-    title: 'r/Kindred',
+    title: 'k/all',
     description: 'The trust layer for crypto. Review projects, stake on your opinions, and build on-chain reputation.',
   },
   'k/defi': {
-    title: 'k/DeFi',
+    title: 'k/defi',
     description: 'Discuss decentralized finance protocols, yields, and risks. The pulse of open finance.',
   },
   'k/perp-dex': {
-    title: 'k/PerpDEX',
+    title: 'k/perp-dex',
     description: 'Leverage trading, funding rates, and exchange reviews. Where the degens live.',
   },
   'k/memecoin': {
-    title: 'k/Memecoin',
+    title: 'k/memecoin',
     description: 'Moonshots, rugs, and gems. High risk, high reward community reviews.',
   },
   'k/ai': {
-    title: 'k/AI',
+    title: 'k/ai',
     description: 'Artificial Intelligence agents and protocols. The future is autonomous.',
+  },
+  'k/kindred': {
+    title: 'k/kindred',
+    description: 'The trust layer for crypto. Review projects, stake on your opinions, and build on-chain reputation.',
   }
 }
 
