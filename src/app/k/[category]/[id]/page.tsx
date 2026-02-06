@@ -143,7 +143,7 @@ export default function ProjectPage() {
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="text-4xl font-bold text-white flex items-center gap-3">
                   {data.name}
-                  {data === projectData && !storedProject && data.id !== 'loading' && (
+                  {data === projectData && data.id !== 'loading' && (
                     <span className={`px-2 py-0.5 rounded-full border text-xs font-medium flex items-center gap-1 ${
                       data.maAtStatus === 'VERIFIED' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
                       data.maAtStatus === 'RISKY' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
