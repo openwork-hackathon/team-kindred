@@ -5,34 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  Compass,
   Flame,
   Trophy,
   Bot,
-  Store,
-  Key,
-  Terminal,
-  BarChart2,
   Coins,
-  Dog,
   BookOpen,
   ShieldCheck,
   HelpCircle,
   ChevronDown,
   Plus,
   PanelLeftClose,
-  Settings,
-  ToggleLeft,
+  TrendingUp,
 } from "lucide-react";
-
-// Types
-type SidebarSection =
-  | "agent-hub"
-  | "active-agents"
-  | "categories"
-  | "my-boards"
-  | "trending-tags"
-  | "resources";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -41,20 +25,7 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const pathname = usePathname();
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    "agent-hub": true,
-    "active-agents": true,
-    categories: true,
-    "my-boards": true,
-  });
-  const [agentMode, setAgentMode] = useState(false);
-
-  const toggleSection = (section: string) => {
-    setOpenSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
 
   if (collapsed) return null;
 
@@ -79,14 +50,22 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
         <div className="flex flex-col">
           <Link
             href="/"
-            className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
+            className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${
+              pathname === "/"
+                ? "bg-purple-500/10 text-purple-400 border-purple-500"
+                : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"
+            }`}
           >
             <Home className="w-[18px] h-[18px]" />
             <span>Home</span>
           </Link>
           <Link
             href="/trending"
-            className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/trending" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
+            className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${
+              pathname === "/trending"
+                ? "bg-purple-500/10 text-purple-400 border-purple-500"
+                : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"
+            }`}
           >
             <Flame className="w-[18px] h-[18px]" />
             <span>Trending</span>
@@ -96,7 +75,11 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           </Link>
           <Link
             href="/leaderboard"
-            className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/leaderboard" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
+            className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${
+              pathname === "/leaderboard"
+                ? "bg-purple-500/10 text-purple-400 border-purple-500"
+                : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"
+            }`}
           >
             <Trophy className="w-[18px] h-[18px]" />
             <span>Leaderboard</span>
@@ -106,10 +89,29 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
 
       <div className="h-px bg-[#1f1f23] mx-4 my-3" />
 
+      {/* Categories */}
+      <div className="mb-2">
+        <button
+          onClick={() => setCategoriesOpen(!categoriesOpen)}
+          className="w-full flex items-center justify-between px-4 py-2 text-[10px] font-semibold text-[#6b6b70] uppercase tracking-wide hover:text-[#adadb0] transition-colors"
+        >
+          <span>Categories</span>
+          <ChevronDown
+            className={`w-4 h-4 transition-transform ${
+              categoriesOpen ? "" : "-rotate-90"
+            }`}
+          />
+        </button>
+        {categoriesOpen && (
+          <div className="flex flex-col">
+            <Link
+              href="/leaderboard?category=k/perp-dex"
+              className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0] border-l-[3px] border-transparent hover:bg-purple-500/5 hover:text-white transition-colors"
+            >
+              <div className="w-7 h-7 rounded-md bg-blue-500/15 text-blue-500 flex items-center justify-center">
+                <TrendingUp className="w-3.5 h-3.5" />
+              </div>
               <span>k/perp-dex</span>
-              <span className="ml-auto px-2 py-0.5 bg-[#2a2a2e] text-[#adadb0] text-[10px] font-bold rounded-full">
-                42
-              </span>
             </Link>
             <Link
               href="/leaderboard?category=k/defi"
@@ -119,9 +121,6 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                 <Coins className="w-3.5 h-3.5" />
               </div>
               <span>k/defi</span>
-              <span className="ml-auto px-2 py-0.5 bg-[#2a2a2e] text-[#adadb0] text-[10px] font-bold rounded-full">
-                128
-              </span>
             </Link>
             <Link
               href="/leaderboard?category=k/ai"
@@ -130,10 +129,7 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
               <div className="w-7 h-7 rounded-md bg-green-500/15 text-green-500 flex items-center justify-center">
                 <Bot className="w-3.5 h-3.5" />
               </div>
-              <span>k/agent</span>
-              <span className="ml-auto px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-full">
-                89
-              </span>
+              <span>k/ai</span>
             </Link>
           </div>
         )}
