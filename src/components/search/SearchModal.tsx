@@ -329,25 +329,87 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 </button>
               )}
 
-              {/* Projects */}
-              {(activeTab === 'all' || activeTab === 'projects') && results?.projects.map(project => (
-                <button
-                  key={project.id}
-                  onClick={() => handleProjectClick(project.address, project.category)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-[#1a1a1d] flex items-center justify-center">
-                    <Folder className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">{project.name}</p>
-                    <p className="text-sm text-[#6b6b70]">{project.category} · {project.reviewCount} reviews</p>
-                  </div>
-                  <div className="text-sm text-[#adadb0]">
-                    ⭐ {project.avgRating.toFixed(1)}
-                  </div>
-                </button>
-              ))}
+              {/* Projects - Grouped by Category */}
+              {(activeTab === 'all' || activeTab === 'projects') && (() => {
+                if (!results?.projects.length) return null
+                
+                // Group projects by category
+                const grouped = results.projects.reduce((acc, project) => {
+                  const cat = project.category
+                  if (!acc[cat]) acc[cat] = []
+                  acc[cat].push(project)
+                  return acc
+                }, {} as Record<string, typeof results.projects>)
+                
+                // Category metadata
+                const categoryMeta: Record<string, { icon: string; label: string; color: string }> = {
+                  'k/defi': { icon: '🏦', label: 'DeFi', color: 'blue' },
+                  'k/perp-dex': { icon: '📈', label: 'Perp DEX', color: 'purple' },
+                  'k/prediction': { icon: '📊', label: 'Prediction', color: 'green' },
+                  'k/memecoin': { icon: '🐕', label: 'Memecoin', color: 'yellow' },
+                  'k/ai': { icon: '🤖', label: 'AI', color: 'pink' },
+                  'k/infra': { icon: '🏗️', label: 'Infrastructure', color: 'gray' },
+                  'k/gourmet': { icon: '🍽️', label: 'Restaurant', color: 'orange' },
+                  'k/nft': { icon: '🎨', label: 'NFT', color: 'indigo' },
+                }
+                
+                return Object.entries(grouped).map(([category, projects]) => {
+                  const meta = categoryMeta[category] || { icon: '📁', label: category, color: 'gray' }
+                  
+                  return (
+                    <div key={category}>
+                      {/* Category Header */}
+                      <div className="px-4 py-2 bg-[#0d0d0e] border-b border-[#1f1f23]">
+                        <p className="text-xs font-medium text-[#adadb0] flex items-center gap-2">
+                          <span>{meta.icon}</span>
+                          <span>{meta.label}</span>
+                          <span className="text-[#6b6b70]">({projects.length})</span>
+                        </p>
+                      </div>
+                      
+                      {/* Projects in this category */}
+                      {projects.map(project => {
+                        // Static color classes (Tailwind doesn't support dynamic interpolation)
+                        const colorClasses: Record<string, { bg: string; badge: string; text: string }> = {
+                          'blue': { bg: 'bg-blue-500/10', badge: 'bg-blue-500/20', text: 'text-blue-400' },
+                          'purple': { bg: 'bg-purple-500/10', badge: 'bg-purple-500/20', text: 'text-purple-400' },
+                          'green': { bg: 'bg-green-500/10', badge: 'bg-green-500/20', text: 'text-green-400' },
+                          'yellow': { bg: 'bg-yellow-500/10', badge: 'bg-yellow-500/20', text: 'text-yellow-400' },
+                          'pink': { bg: 'bg-pink-500/10', badge: 'bg-pink-500/20', text: 'text-pink-400' },
+                          'gray': { bg: 'bg-gray-500/10', badge: 'bg-gray-500/20', text: 'text-gray-400' },
+                          'orange': { bg: 'bg-orange-500/10', badge: 'bg-orange-500/20', text: 'text-orange-400' },
+                          'indigo': { bg: 'bg-indigo-500/10', badge: 'bg-indigo-500/20', text: 'text-indigo-400' },
+                        }
+                        const colors = colorClasses[meta.color] || colorClasses['gray']
+                        
+                        return (
+                          <button
+                            key={project.id}
+                            onClick={() => handleProjectClick(project.address, project.category)}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
+                          >
+                            <div className={`w-10 h-10 rounded-lg ${colors.bg} flex items-center justify-center`}>
+                              <span className="text-xl">{meta.icon}</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="text-white font-medium">{project.name}</p>
+                                <span className={`px-2 py-0.5 text-xs rounded ${colors.badge} ${colors.text}`}>
+                                  {meta.label}
+                                </span>
+                              </div>
+                              <p className="text-sm text-[#6b6b70]">{project.reviewCount} reviews</p>
+                            </div>
+                            <div className="text-sm text-[#adadb0]">
+                              ⭐ {project.avgRating.toFixed(1)}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )
+                })
+              })()}
 
               {/* Reviews */}
               {(activeTab === 'all' || activeTab === 'reviews') && results?.reviews.map(review => (
