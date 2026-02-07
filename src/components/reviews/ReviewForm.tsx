@@ -28,9 +28,9 @@ const CATEGORIES: { value: Category; label: string; icon: string; description: s
 
 const STAKE_OPTIONS = [
   { value: '0', label: 'No Stake', description: 'Basic review' },
-  { value: '1000000000000000000', label: '1 OPEN', description: '+10% reputation' },
-  { value: '5000000000000000000', label: '5 OPEN', description: '+25% reputation' },
-  { value: '10000000000000000000', label: '10 OPEN', description: '+50% reputation' },
+  { value: '1000000000000000000', label: '1 KINDCLAW', description: '+10% reputation' },
+  { value: '5000000000000000000', label: '5 KINDCLAW', description: '+25% reputation' },
+  { value: '10000000000000000000', label: '10 KINDCLAW', description: '+50% reputation' },
 ]
 
 export function ReviewForm() {
@@ -60,8 +60,8 @@ export function ReviewForm() {
 
   // On-chain hooks - MUST be called unconditionally
   const { createComment, hash: commentHash, isPending: isCreating, isConfirming: isConfirmingComment, isSuccess: commentSuccess, isError: commentError, error: commentErrorMsg } = useCreateComment()
-  const { approve, hash: approveHash, isPending: isApproving, isConfirming: isConfirmingApprove, isSuccess: approveSuccess } = useApproveKindToken()
-  const { data: allowance } = useKindTokenAllowance(address)
+  const { approve, hash: approveHash, isPending: isApproving, isConfirming: isConfirmingApprove, isSuccess: approveSuccess } = useApproveKindClaw()
+  const { data: allowance } = useKindClawAllowance(address)
 
   // Check if approval is needed
   useEffect(() => {
