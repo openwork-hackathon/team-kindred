@@ -87,8 +87,8 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
   }, [restaurant.name])
 
   const photos = restaurantInfo?.photos || []
-  const heroImage = photos[1] || photos[0] || '/images/restaurant-placeholder.jpg'
-  const logoImage = photos[0] || null
+  const heroImage = photos[1] || photos[0]
+  const logoImage = photos[0]
 
   return (
     <main className="min-h-screen bg-[#0a0a0b] text-white">
@@ -104,44 +104,51 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
       </div>
 
       {/* Hero Banner */}
-      <div className="relative h-[400px] w-full overflow-hidden">
-        <Image
-          src={heroImage}
-          alt={restaurant.name}
-          fill
-          className="object-cover"
-          priority
-          onError={(e) => {
-            // Fallback to gradient on error
-            e.currentTarget.style.display = 'none'
-            e.currentTarget.parentElement!.style.background = 'linear-gradient(135deg, #f97316 0%, #a855f7 100%)'
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/50 to-transparent" />
+      <div className="relative h-[400px] w-full overflow-hidden bg-gradient-to-br from-orange-500 to-purple-600">
+        {heroImage ? (
+          <>
+            <Image
+              src={heroImage}
+              alt={restaurant.name}
+              fill
+              className="object-cover"
+              priority
+              unoptimized
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/50 to-transparent" />
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              {loadingInfo ? (
+                <div className="animate-pulse">
+                  <Utensils className="w-16 h-16 text-white/30 mx-auto mb-4" />
+                  <p className="text-white/50">Loading restaurant photos...</p>
+                </div>
+              ) : (
+                <Utensils className="w-16 h-16 text-white/30 mx-auto" />
+              )}
+            </div>
+          </div>
+        )}
         
         {/* Restaurant Logo (floating) */}
-        {logoImage && (
+        {logoImage && !loadingInfo && (
           <div className="absolute bottom-0 left-8 translate-y-1/2 z-10">
-            <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-4 border-[#0a0a0b] shadow-2xl">
+            <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-4 border-[#0a0a0b] shadow-2xl bg-gray-900">
               <Image
                 src={logoImage}
                 alt={`${restaurant.name} logo`}
                 fill
                 className="object-cover"
-                onError={(e) => {
-                  // Fallback to icon
-                  e.currentTarget.style.display = 'none'
-                }}
+                unoptimized
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-orange-500/20 to-purple-500/20 backdrop-blur-sm">
-                <Utensils className="w-12 h-12 text-white" />
-              </div>
             </div>
           </div>
         )}
 
         {/* Restaurant Name & Basic Info */}
-        <div className="absolute bottom-8 left-8 right-8" style={{ marginLeft: logoImage ? '160px' : '0' }}>
+        <div className="absolute bottom-8 left-8 right-8" style={{ marginLeft: (logoImage && !loadingInfo) ? '160px' : '0' }}>
           <h1 className="text-5xl font-bold mb-2 drop-shadow-lg">{restaurant.name}</h1>
           
           <div className="flex items-center gap-6 text-sm">
@@ -212,15 +219,13 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
                 </h2>
                 
                 {/* Main Photo */}
-                <div className="relative h-[400px] rounded-xl overflow-hidden mb-4">
+                <div className="relative h-[400px] rounded-xl overflow-hidden mb-4 bg-gray-800">
                   <Image
                     src={photos[selectedPhoto] || photos[0]}
                     alt={`${restaurant.name} photo ${selectedPhoto + 1}`}
                     fill
                     className="object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = '/images/food-placeholder.jpg'
-                    }}
+                    unoptimized
                   />
                 </div>
 
@@ -239,9 +244,7 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
                         alt={`Thumbnail ${i + 1}`}
                         fill
                         className="object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = '/images/food-placeholder.jpg'
-                        }}
+                        unoptimized
                       />
                     </button>
                   ))}
