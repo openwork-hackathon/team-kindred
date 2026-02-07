@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { ArrowDown, Info, TrendingDown, Award, Shield, AlertCircle } from 'lucide-react'
+import { ArrowDown, Info, TrendingDown, Award, Shield, AlertCircle, ChevronDown, ArrowDownUp } from 'lucide-react'
 
 // Fee calculation matching KindredHook.sol
 const HIGH_TRUST_THRESHOLD = 850
@@ -13,6 +13,59 @@ const MIN_SCORE_TO_TRADE = 100
 const FEE_HIGH_TRUST = 0.15    // 0.15%
 const FEE_MEDIUM_TRUST = 0.22  // 0.22%
 const FEE_LOW_TRUST = 0.30     // 0.30%
+
+// Token definitions
+interface Token {
+  symbol: string
+  name: string
+  color: string
+  icon: string
+  decimals: number
+  balance: string
+}
+
+const TOKENS: Record<string, Token> = {
+  ETH: {
+    symbol: 'ETH',
+    name: 'Ethereum',
+    color: 'from-purple-500 to-blue-500',
+    icon: 'Ξ',
+    decimals: 18,
+    balance: '0.5',
+  },
+  WBTC: {
+    symbol: 'WBTC',
+    name: 'Wrapped Bitcoin',
+    color: 'from-orange-500 to-yellow-500',
+    icon: '₿',
+    decimals: 8,
+    balance: '0.025',
+  },
+  USDC: {
+    symbol: 'USDC',
+    name: 'USD Coin',
+    color: 'from-green-500 to-emerald-500',
+    icon: '$',
+    decimals: 6,
+    balance: '1,234.56',
+  },
+  DAI: {
+    symbol: 'DAI',
+    name: 'Dai Stablecoin',
+    color: 'from-yellow-500 to-orange-500',
+    icon: '◈',
+    decimals: 18,
+    balance: '987.65',
+  },
+}
+
+// Mock exchange rates (vs USDC)
+const EXCHANGE_RATES: Record<string, number> = {
+  ETH: 2000,    // 1 ETH = 2000 USDC
+  WBTC: 40000,  // 1 WBTC = 40000 USDC
+  USDC: 1,      // 1 USDC = 1 USDC
+  DAI: 1,       // 1 DAI = 1 USDC
+}
 
 function calculateFee(score: number): number {
   if (score >= HIGH_TRUST_THRESHOLD) return FEE_HIGH_TRUST
@@ -27,10 +80,91 @@ function getTrustTier(score: number): 'high' | 'medium' | 'low' | 'blocked' {
   return 'low'
 }
 
+function calculateSwapOutput(
+  fromToken: string,
+  toToken: string,
+  amount: number,
+  feePercent: number
+): number {
+  const fromRate = EXCHANGE_RATES[fromToken]
+  const toRate = EXCHANGE_RATES[toToken]
+  
+  // Convert to USDC, apply fee, then convert to target token
+  const usdcValue = amount * fromRate
+  const afterFee = usdcValue * (1 - feePercent / 100)
+  const output = afterFee / toRate
+  
+  return output
+}
+
+// Token Selector Component
+function TokenSelector({ 
+  selectedToken, 
+  onSelect,
+  exclude 
+}: { 
+  selectedToken: string
+  onSelect: (token: string) => void
+  exclude?: string
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const token = TOKENS[selectedToken]
+
+  const availableTokens = Object.entries(TOKENS).filter(
+    ([symbol]) => symbol !== exclude
+  )
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg transition-colors"
+      >
+        <div className={`w-6 h-6 bg-gradient-to-br ${token.color} rounded-full flex items-center justify-center text-white text-xs font-bold`}>
+          {token.icon}
+        </div>
+        <span className="font-semibold">{token.symbol}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <>
+          <div 
+            className="fixed inset-0 z-10" 
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute right-0 mt-2 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-20 min-w-[200px]">
+            {availableTokens.map(([symbol, t]) => (
+              <button
+                key={symbol}
+                onClick={() => {
+                  onSelect(symbol)
+                  setIsOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-700 transition-colors first:rounded-t-xl last:rounded-b-xl"
+              >
+                <div className={`w-8 h-8 bg-gradient-to-br ${t.color} rounded-full flex items-center justify-center text-white font-bold`}>
+                  {t.icon}
+                </div>
+                <div className="text-left">
+                  <div className="font-semibold">{t.symbol}</div>
+                  <div className="text-xs text-gray-400">{t.name}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function SwapInterface() {
   const { address, isConnected } = useAccount()
   const [reputation, setReputation] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
+  const [fromToken, setFromToken] = useState('ETH')
+  const [toToken, setToToken] = useState('USDC')
   const [fromAmount, setFromAmount] = useState('1.0')
   const [toAmount, setToAmount] = useState('0.0')
 
@@ -59,17 +193,28 @@ export function SwapInterface() {
     fetchReputation()
   }, [address])
 
-  // Calculate swap output (mock)
+  // Calculate swap output
   useEffect(() => {
     const input = parseFloat(fromAmount) || 0
     if (input > 0 && reputation !== null) {
       const fee = calculateFee(reputation)
-      const output = input * (1 - fee / 100) * 2000 // Mock USDC/ETH rate
-      setToAmount(output.toFixed(2))
+      const output = calculateSwapOutput(fromToken, toToken, input, fee)
+      
+      // Format based on token decimals
+      const decimals = TOKENS[toToken].decimals >= 6 ? 2 : 6
+      setToAmount(output.toFixed(decimals))
     } else {
       setToAmount('0.0')
     }
-  }, [fromAmount, reputation])
+  }, [fromAmount, fromToken, toToken, reputation])
+
+  // Handle token flip
+  const handleFlip = () => {
+    setFromToken(toToken)
+    setToToken(fromToken)
+    setFromAmount(toAmount)
+    setToAmount('0.0')
+  }
 
   if (!isConnected) {
     return (
@@ -172,20 +317,27 @@ export function SwapInterface() {
                 className="bg-transparent text-2xl font-semibold outline-none w-full"
                 disabled={!canTrade}
               />
-              <div className="flex items-center gap-2 bg-gray-700 px-3 py-2 rounded-lg">
-                <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full" />
-                <span className="font-semibold">ETH</span>
-              </div>
+              <TokenSelector 
+                selectedToken={fromToken} 
+                onSelect={setFromToken}
+                exclude={toToken}
+              />
             </div>
-            <div className="text-sm text-gray-500 mt-2">Balance: 0.5 ETH</div>
+            <div className="text-sm text-gray-500 mt-2">
+              Balance: {TOKENS[fromToken].balance} {fromToken}
+            </div>
           </div>
         </div>
 
-        {/* Swap Icon */}
+        {/* Swap Icon with Flip Button */}
         <div className="flex justify-center my-4">
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-2">
-            <ArrowDown className="w-5 h-5 text-gray-400" />
-          </div>
+          <button
+            onClick={handleFlip}
+            className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg p-2 transition-all hover:scale-110"
+            disabled={!canTrade}
+          >
+            <ArrowDownUp className="w-5 h-5 text-gray-400" />
+          </button>
         </div>
 
         {/* To Token */}
@@ -200,12 +352,15 @@ export function SwapInterface() {
                 placeholder="0.0"
                 className="bg-transparent text-2xl font-semibold outline-none w-full"
               />
-              <div className="flex items-center gap-2 bg-gray-700 px-3 py-2 rounded-lg">
-                <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full" />
-                <span className="font-semibold">USDC</span>
-              </div>
+              <TokenSelector 
+                selectedToken={toToken} 
+                onSelect={setToToken}
+                exclude={fromToken}
+              />
             </div>
-            <div className="text-sm text-gray-500 mt-2">Balance: 1,234.56 USDC</div>
+            <div className="text-sm text-gray-500 mt-2">
+              Balance: {TOKENS[toToken].balance} {toToken}
+            </div>
           </div>
         </div>
 
@@ -233,7 +388,7 @@ export function SwapInterface() {
           <button
             className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 rounded-xl transition-all"
           >
-            Swap via KindredHook
+            Swap {fromToken} → {toToken} via KindredHook
           </button>
         ) : (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">

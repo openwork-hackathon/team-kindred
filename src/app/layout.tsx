@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, DM_Mono } from 'next/font/google'
+import '@rainbow-me/rainbowkit/styles.css'
 import './globals.css'
 import { Providers } from './providers'
 import { ClientLayout } from '@/components/ClientLayout'
