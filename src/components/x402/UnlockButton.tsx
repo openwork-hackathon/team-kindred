@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
-import { parseUnits, encodeFunctionData } from 'viem'
+import { parseUnits, encodeFunctionData, createWalletClient, custom } from 'viem'
+import { baseSepolia } from 'viem/chains'
 import { Loader2, Lock, Sparkles, Check } from 'lucide-react'
 import { CONTRACTS } from '@/lib/contracts'
 
@@ -82,7 +83,7 @@ export function UnlockButton({
         args: [TREASURY_ADDRESS, usdcAmount],
       })
 
-      // Send USDC transaction
+      // Send USDC transaction via Privy wallet
       console.log('[UnlockButton] Sending USDC payment:', {
         from: address,
         to: USDC_ADDRESS,
@@ -90,10 +91,21 @@ export function UnlockButton({
         treasury: TREASURY_ADDRESS,
       })
 
-      const txHash = await wallet.sendTransaction({
+      // Get EIP-1193 provider from Privy wallet
+      const provider = await wallet.getEthereumProvider()
+      
+      // Create viem wallet client
+      const walletClient = createWalletClient({
+        account: address,
+        chain: baseSepolia,
+        transport: custom(provider),
+      })
+
+      // Send transaction
+      const txHash = await walletClient.sendTransaction({
         to: USDC_ADDRESS,
         data,
-        value: BigInt(0), // No ETH value for ERC-20 transfer
+        value: BigInt(0),
       })
 
       console.log('[UnlockButton] Payment sent:', txHash)
