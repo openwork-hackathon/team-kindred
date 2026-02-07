@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { MapPin, Star, Users, TrendingUp, ArrowLeft, ExternalLink, Award, Utensils, Camera, Clock, DollarSign, ChefHat } from 'lucide-react'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
 import { ReviewCard } from '@/components/reviews/ReviewCard'
+import { analyzeRestaurant, RestaurantAnalysis } from '@/app/actions/analyzeRestaurant'
 
 interface Review {
   id: string
@@ -60,30 +61,25 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
   const [loadingInfo, setLoadingInfo] = useState(true)
   const averageRating = restaurant.avgRating
 
-  // Fetch restaurant details from Maat API
+  // Fetch restaurant details using Gemini analysis
   useEffect(() => {
     async function fetchRestaurantInfo() {
       try {
-        const res = await fetch('/api/gourmet/insight', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ restaurantId: restaurant.address, restaurantName: restaurant.name }),
-        })
+        const analysis = await analyzeRestaurant(restaurant.name)
         
-        if (res.ok) {
-          const data = await res.json()
+        if (analysis) {
           setRestaurantInfo({
-            platformScores: data.platformScores,
-            cuisine: data.cuisine,
-            priceRange: data.priceRange,
-            avgCost: data.avgCost,
-            hours: data.hours,
-            address: data.address,
-            googleMapsUrl: data.googleMapsUrl,
-            bestFor: data.bestFor,
-            mustTry: data.mustTry,
-            warnings: data.warnings,
-            criticalReviews: data.criticalReviews,
+            platformScores: analysis.platformScores,
+            cuisine: analysis.cuisine,
+            priceRange: analysis.priceRange,
+            avgCost: analysis.avgCost,
+            hours: analysis.hours,
+            address: analysis.address,
+            googleMapsUrl: analysis.googleMapsUrl,
+            bestFor: analysis.bestFor,
+            mustTry: analysis.mustTry,
+            warnings: analysis.warnings,
+            criticalReviews: analysis.criticalReviews,
           })
         }
       } catch (error) {
