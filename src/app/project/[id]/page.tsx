@@ -11,22 +11,36 @@ interface PageProps {
 }
 
 export default async function ProjectRedirectPage({ params }: PageProps) {
-  const projectId = params.id.toLowerCase()
+  const projectId = params.id.toLowerCase().trim()
 
-  // 1. Try to find project in DB to get real category
-  const project = await prisma.project.findUnique({
+  // 1. Try to find project in DB by address OR name (case-insensitive)
+  let project = await prisma.project.findUnique({
     where: { address: projectId },
-    select: { category: true }
+    select: { address: true, category: true }
   })
 
-  // 2. Determine target category
-  // If found, use its category. 
-  // If not found, default to 'k/defi' (Ma'at will analyze it there) 
-  // OR we could redirect to a search results page? 
-  // For now, defaulting to k/defi allows the "Create New Project" flow to work 
-  // because the dynamic page at /k/defi/[id] handles the "Analyzing..." state.
-  const category = project?.category || 'k/defi'
+  // 2. If not found by address, try by name (for restaurants, etc.)
+  if (!project) {
+    const projectsByName = await prisma.project.findMany({
+      where: {
+        name: { contains: projectId, mode: 'insensitive' }
+      },
+      select: { address: true, category: true, name: true },
+      orderBy: { reviewCount: 'desc' },
+      take: 1
+    })
+    
+    if (projectsByName.length > 0) {
+      project = projectsByName[0]
+    }
+  }
 
-  // 3. Redirect to the canonical URL
-  redirect(`/${category}/${projectId}`)
+  // 3. Determine target category and address
+  // If found, use its category and address. 
+  // If not found, default to 'k/defi' (Ma'at will analyze it there) 
+  const category = project?.category || 'k/defi'
+  const targetAddress = project?.address || projectId
+
+  // 4. Redirect to the canonical URL
+  redirect(`/${category}/${targetAddress}`)
 }

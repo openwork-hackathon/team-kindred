@@ -159,8 +159,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     }
   }
 
-  // Handle result click
-  const handleProjectClick = (projectId: string, category: string) => {
+  // Handle result click (use address for URL, not database ID)
+  const handleProjectClick = (address: string, category: string) => {
     // Ensure category starts with 'k/' or map it from Type
     let cleanCategory = category.toLowerCase()
     
@@ -173,12 +173,13 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
          'nft': 'k/nft',
          'ai': 'k/ai',
          'meme': 'k/memecoin',
-         'infrastructure': 'k/infra'
+         'infrastructure': 'k/infra',
+         'gourmet': 'k/gourmet'
        }
        cleanCategory = map[cleanCategory] || 'k/defi'
     }
 
-    router.push(`/${cleanCategory}/${projectId}`)
+    router.push(`/${cleanCategory}/${address}`)
     onClose()
   }
 
@@ -332,7 +333,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               {(activeTab === 'all' || activeTab === 'projects') && results?.projects.map(project => (
                 <button
                   key={project.id}
-                  onClick={() => handleProjectClick(project.id, project.category)}
+                  onClick={() => handleProjectClick(project.address, project.category)}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[#1a1a1d] border-b border-[#1f1f23] transition-colors"
                 >
                   <div className="w-10 h-10 rounded-lg bg-[#1a1a1d] flex items-center justify-center">
