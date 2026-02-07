@@ -7,6 +7,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { searchPlace } from '@/lib/googlePlaces'
 
 export const dynamic = 'force-dynamic'
 
