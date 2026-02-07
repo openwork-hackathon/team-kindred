@@ -10,6 +10,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { searchPlace } from '@/lib/googlePlaces'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,6 +29,7 @@ interface RestaurantInfo {
   mustTry?: Array<{ name: string; price?: string; description?: string }>
   warnings?: string[]
   criticalReviews?: Array<{ issue: string; source?: string }>
+  photos?: string[] // Google Places photo URLs
 }
 
 /**
@@ -74,6 +76,7 @@ export async function POST(request: Request) {
           mustTry: analysis.mustTry,
           warnings: analysis.warnings,
           criticalReviews: analysis.criticalReviews,
+          photos: analysis.photos, // Include photos from cache
           _cached: true,
         })
       } catch (e) {
@@ -103,6 +106,17 @@ async function getRestaurantInfo(restaurantName: string): Promise<RestaurantInfo
   const sanitizedName = restaurantName
     .replace(/["\n\r\\]/g, '')
     .slice(0, 200)
+
+  // Step 1: Get photos from Google Places API (real photos!)
+  let placesData = null
+  try {
+    placesData = await searchPlace(sanitizedName)
+    if (placesData) {
+      console.log('[Gourmet Info] Got', placesData.photos?.length || 0, 'photos from Google Places')
+    }
+  } catch (e) {
+    console.warn('[Gourmet Info] Google Places failed:', e)
+  }
 
   const prompt = `You are a restaurant information expert. Analyze the restaurant: "${sanitizedName}"
 
@@ -171,18 +185,25 @@ IMPORTANT:
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0])
+      
+      // Merge Google Places photos (real photos from API!)
+      if (placesData?.photos && placesData.photos.length > 0) {
+        parsed.photos = placesData.photos
+        console.log('[Gourmet Info] Added', placesData.photos.length, 'photos from Google Places')
+      }
+      
       return parsed
     }
 
-    return getDefaultInfo(sanitizedName)
+    return getDefaultInfo(sanitizedName, placesData?.photos)
 
   } catch (error) {
     console.error('Gemini info error:', error)
-    return getDefaultInfo(sanitizedName)
+    return getDefaultInfo(sanitizedName, placesData?.photos)
   }
 }
 
-function getDefaultInfo(name: string): RestaurantInfo {
+function getDefaultInfo(name: string, photos?: string[]): RestaurantInfo {
   return {
     platformScores: [
       { platform: 'Google', score: '4.2', reviewCount: 500 },
@@ -202,5 +223,6 @@ function getDefaultInfo(name: string): RestaurantInfo {
     criticalReviews: [
       { issue: 'Wait times can be long during peak hours', source: 'Community' },
     ],
+    photos: photos || [], // Include Google Places photos even in fallback
   }
 }
