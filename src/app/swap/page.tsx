@@ -26,7 +26,7 @@ export default function SwapPage() {
             Reputation-Based Dynamic Fees
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            The first Uniswap v4 Hook that rewards your on-chain reputation with lower swap fees
+            The first Uniswap v4 Hook that rewards your on-chain reputation with lower swap fees across multiple token pairs
           </p>
         </div>
 
