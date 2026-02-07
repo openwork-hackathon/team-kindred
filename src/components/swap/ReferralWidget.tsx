@@ -1,19 +1,51 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { Gift, Users, Copy, Check } from 'lucide-react'
+import { RewardsClaimButton } from './RewardsClaimButton'
 
 interface ReferralWidgetProps {
   reputation: number
 }
 
+interface ReferralData {
+  referralCount: number
+  pendingRewards: string
+  canRefer: boolean
+  referralUrl: string | null
+}
+
 export function ReferralWidget({ reputation }: ReferralWidgetProps) {
   const { address } = useAccount()
   const [copied, setCopied] = useState(false)
+  const [data, setData] = useState<ReferralData | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const canRefer = reputation >= 700
   const referralUrl = `https://kindred.app/?ref=${address}`
+
+  // Fetch real referral data from API
+  useEffect(() => {
+    if (!address) return
+
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/referral?address=${address}`)
+        const json = await res.json()
+        setData(json)
+      } catch (error) {
+        console.error('Failed to fetch referral data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+    const interval = setInterval(fetchData, 30000) // Refresh every 30s
+    return () => clearInterval(interval)
+  }, [address])
 
   const copyReferralLink = () => {
     navigator.clipboard.writeText(referralUrl)
@@ -97,16 +129,37 @@ export function ReferralWidget({ reputation }: ReferralWidgetProps) {
               <Users className="w-3.5 h-3.5 text-purple-400" />
               <span className="text-xs text-slate-400">Referrals</span>
             </div>
-            <div className="text-lg font-bold text-white">0</div>
+            <div className="text-lg font-bold text-white">
+              {loading ? '...' : data?.referralCount || 0}
+            </div>
           </div>
           <div className="p-3 bg-black/40 rounded-lg">
             <div className="flex items-center gap-2 mb-1">
               <Gift className="w-3.5 h-3.5 text-pink-400" />
               <span className="text-xs text-slate-400">Earned</span>
             </div>
-            <div className="text-lg font-bold text-white">$0.00</div>
+            <div className="text-lg font-bold text-white">
+              {loading ? '...' : `${(Number(data?.pendingRewards || 0) / 1e18).toFixed(4)} ETH`}
+            </div>
           </div>
         </div>
+
+        {/* Claim Rewards Button */}
+        {data && Number(data.pendingRewards) > 0 && (
+          <div className="mt-3">
+            <RewardsClaimButton 
+              pendingRewards={data.pendingRewards}
+              onSuccess={() => {
+                // Refresh data after claim
+                if (address) {
+                  fetch(`/api/referral?address=${address}`)
+                    .then(res => res.json())
+                    .then(json => setData(json))
+                }
+              }}
+            />
+          </div>
+        )}
 
         {/* Benefits */}
         <div className="mt-3 p-3 bg-black/20 rounded-lg">
