@@ -4,13 +4,9 @@
  * 
  * This is different from /api/gourmet/insight which is paid premium content.
  * This endpoint provides free basic info for all users.
- * 
- * UPDATED: Now reads from ProjectAnalysisCache first (server-side stored data)
  */
 
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { searchPlace } from '@/lib/googlePlaces'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,15 +25,18 @@ interface RestaurantInfo {
   mustTry?: Array<{ name: string; price?: string; description?: string }>
   warnings?: string[]
   criticalReviews?: Array<{ issue: string; source?: string }>
-  photos?: string[] // Google Places photo URLs
+  photos?: string[] // Restaurant photos (logo, banner, interior)
 }
 
 /**
  * POST /api/gourmet/info
  * Get basic restaurant information (FREE)
- * Reads from DB cache first, falls back to Gemini generation
  */
 export async function POST(request: Request) {
+  if (!GEMINI_API_KEY) {
+    return NextResponse.json({ error: 'Gemini API not configured' }, { status: 500 })
+  }
+
   try {
     const { restaurantName } = await request.json()
 
@@ -45,54 +44,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Restaurant name is required' }, { status: 400 })
     }
 
-    // Step 1: Check ProjectAnalysisCache (using correct schema: query + result)
-    const cacheKey = restaurantName.toLowerCase()
-    
-    const cachedAnalysis = await prisma.projectAnalysisCache.findUnique({
-      where: { query: cacheKey },
-    })
-
-    // Step 2: If we have cached analysis, return it
-    if (cachedAnalysis?.result) {
-      try {
-        const analysis = JSON.parse(cachedAnalysis.result)
-        console.log('[Gourmet Info] Returning cached analysis for:', restaurantName)
-        
-        // Update hit count
-        await prisma.projectAnalysisCache.update({
-          where: { query: cacheKey },
-          data: { hitCount: { increment: 1 } },
-        }).catch(() => {}) // Silent fail on hit count update
-        
-        return NextResponse.json({
-          platformScores: analysis.platformScores,
-          cuisine: analysis.cuisine,
-          priceRange: analysis.priceRange,
-          avgCost: analysis.avgCost,
-          hours: analysis.hours,
-          address: analysis.address,
-          googleMapsUrl: analysis.googleMapsUrl,
-          bestFor: analysis.bestFor,
-          mustTry: analysis.mustTry,
-          warnings: analysis.warnings,
-          criticalReviews: analysis.criticalReviews,
-          photos: analysis.photos, // Include photos from cache
-          _cached: true,
-        })
-      } catch (e) {
-        console.error('[Gourmet Info] Failed to parse cached analysis:', e)
-      }
-    }
-
-    // Step 3: No cache, generate fresh analysis (fallback)
-    if (!GEMINI_API_KEY) {
-      return NextResponse.json({ error: 'Gemini API not configured' }, { status: 500 })
-    }
-
-    console.log('[Gourmet Info] No cache found, generating fresh analysis for:', restaurantName)
     const info = await getRestaurantInfo(restaurantName)
 
-    return NextResponse.json({ ...info, _cached: false })
+    return NextResponse.json(info)
   } catch (error) {
     console.error('[Gourmet Info] Error:', error)
     return NextResponse.json(
@@ -106,17 +60,6 @@ async function getRestaurantInfo(restaurantName: string): Promise<RestaurantInfo
   const sanitizedName = restaurantName
     .replace(/["\n\r\\]/g, '')
     .slice(0, 200)
-
-  // Step 1: Get photos from Google Places API (real photos!)
-  let placesData = null
-  try {
-    placesData = await searchPlace(sanitizedName)
-    if (placesData) {
-      console.log('[Gourmet Info] Got', placesData.photos?.length || 0, 'photos from Google Places')
-    }
-  } catch (e) {
-    console.warn('[Gourmet Info] Google Places failed:', e)
-  }
 
   const prompt = `You are a restaurant information expert. Analyze the restaurant: "${sanitizedName}"
 
@@ -144,6 +87,11 @@ Respond ONLY with valid JSON in this exact format:
   "criticalReviews": [
     {"issue": "Long wait times even with reservation", "source": "Yelp"},
     {"issue": "Parking can be difficult", "source": "Google"}
+  ],
+  "photos": [
+    "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400",
+    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800",
+    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400"
   ]
 }
 
@@ -158,6 +106,7 @@ IMPORTANT:
 - Must Try should have 2-5 dishes
 - Warnings should be realistic common issues
 - Critical Reviews should be common complaints
+- Photos: Include 2-3 Unsplash restaurant image URLs (use restaurant-related photos)
 - Return ONLY valid JSON, no other text`
 
   try {
@@ -185,25 +134,18 @@ IMPORTANT:
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0])
-      
-      // Merge Google Places photos (real photos from API!)
-      if (placesData?.photos && placesData.photos.length > 0) {
-        parsed.photos = placesData.photos
-        console.log('[Gourmet Info] Added', placesData.photos.length, 'photos from Google Places')
-      }
-      
       return parsed
     }
 
-    return getDefaultInfo(sanitizedName, placesData?.photos)
+    return getDefaultInfo(sanitizedName)
 
   } catch (error) {
     console.error('Gemini info error:', error)
-    return getDefaultInfo(sanitizedName, placesData?.photos)
+    return getDefaultInfo(sanitizedName)
   }
 }
 
-function getDefaultInfo(name: string, photos?: string[]): RestaurantInfo {
+function getDefaultInfo(name: string): RestaurantInfo {
   return {
     platformScores: [
       { platform: 'Google', score: '4.2', reviewCount: 500 },
@@ -223,6 +165,11 @@ function getDefaultInfo(name: string, photos?: string[]): RestaurantInfo {
     criticalReviews: [
       { issue: 'Wait times can be long during peak hours', source: 'Community' },
     ],
-    photos: photos || [], // Include Google Places photos even in fallback
+    // Default restaurant photos from Unsplash
+    photos: [
+      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400', // Restaurant interior
+      'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800', // Restaurant banner
+      'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400', // Food close-up
+    ],
   }
 }
