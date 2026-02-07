@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { useSendTransaction, useWaitForTransactionReceipt } from 'wagmi'
-import { useConnectModal } from '@rainbow-me/rainbowkit'
+import { useCircleWallet } from '@/hooks/useCircleWallet'
 import { parseUnits, encodeFunctionData } from 'viem'
 import { Loader2, Lock, Check } from 'lucide-react'
 import { CONTRACTS } from '@/lib/contracts'
@@ -24,7 +24,7 @@ export function UnlockButton({
   className = '',
 }: UnlockButtonProps) {
   const { address, isConnected } = useAccount()
-  const { openConnectModal } = useConnectModal()
+  const { connect: connectCircle } = useCircleWallet()
   const [status, setStatus] = useState<'idle' | 'paying' | 'unlocking' | 'unlocked'>('idle')
   const [error, setError] = useState<string | null>(null)
 
@@ -39,7 +39,7 @@ export function UnlockButton({
 
   const handleUnlock = async () => {
     if (!isConnected) {
-      openConnectModal?.()
+      connectCircle()
       return
     }
 
