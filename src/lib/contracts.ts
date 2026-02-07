@@ -6,6 +6,7 @@
 import KindredCommentABI from './abi/KindredComment.json'
 import KindTokenABI from './abi/KindToken.json'
 import KindredHookABI from './abi/KindredHook.json'
+import KindredHookV2ABI from './abi/KindredHookV2.json'
 import ReputationOracleABI from './abi/ReputationOracle.json'
 import SimpleSwapABI from './abi/SimpleSwap.json'
 
@@ -29,6 +30,10 @@ export const CONTRACTS = {
     kindredHook: {
       address: '0x03C8fFc3E6820Ef40d43F76F66e8B9C1A1DFaD4d' as `0x${string}`,
       abi: KindredHookABI,
+    },
+    kindredHookV2: {
+      address: '0x5238C910f0690eb9C8b4f34Cf78c97C3D7f9E313' as `0x${string}`,
+      abi: KindredHookV2ABI,
     },
     mockPoolManager: '0x7350Cc2655004d32e234094C847bfac789D19408' as `0x${string}`, // Demo only
     // Simple Swap - Deployed 2026-02-07
