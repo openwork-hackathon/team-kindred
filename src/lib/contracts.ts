@@ -7,6 +7,7 @@ import KindredCommentABI from './abi/KindredComment.json'
 import KindTokenABI from './abi/KindToken.json'
 import KindredHookABI from './abi/KindredHook.json'
 import ReputationOracleABI from './abi/ReputationOracle.json'
+import SimpleSwapABI from './abi/SimpleSwap.json'
 
 export const CONTRACTS = {
   // Base Sepolia (testnet) - Deployed 2026-02-05 (core) + 2026-02-07 (hook)
@@ -30,6 +31,12 @@ export const CONTRACTS = {
       abi: KindredHookABI,
     },
     mockPoolManager: '0x7350Cc2655004d32e234094C847bfac789D19408' as `0x${string}`, // Demo only
+    // Simple Swap - Deployed 2026-02-07
+    simpleSwap: {
+      address: '0x2b50678df7FDb8Baba5867DC5de4F05432CbEf71' as `0x${string}`,
+      abi: SimpleSwapABI,
+    },
+    usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as `0x${string}`,
   },
   // Base (mainnet)
   base: {

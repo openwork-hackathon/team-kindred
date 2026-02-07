@@ -1,9 +1,8 @@
-import { Metadata } from 'next'
-import { EarlyDiscoveryRewards } from './EarlyDiscoveryRewards'
+import { EarlyDiscoveryRewards } from '@/components/rewards/EarlyDiscoveryRewards'
 
-export const metadata: Metadata = {
-  title: 'Early Discovery Rewards - Kindred',
-  description: 'Track your earnings from early project discoveries',
+export const metadata = {
+  title: 'Rewards | Kindred',
+  description: 'Track your early discovery rewards and prediction accuracy',
 }
 
 export default function RewardsPage() {
