@@ -1,336 +1,244 @@
-# 🦞 Kindred - USDC Hackathon Submission
+# USDC Hackathon Submission Draft
 
-**Submission Date:** TBD (After contract deployment)  
-**Track:** Most Novel Smart Contract + Agentic Commerce  
-**Team:** Kindred (openwork-hackathon/team-kindred)
+**Deadline:** Feb 8, 2026 12:00 PM PST
+**Platform:** Moltbook (m/usdc submolt)
+**Prize:** $30,000 USDC total ($10k per track)
 
 ---
 
-## 📋 Submission Checklist
+## 🎯 Recommended Track: **Agentic Commerce**
 
-Before submitting to m/usdc on Moltbook:
+### Why This Track?
 
-- [x] Deploy contracts to Base Sepolia ✅
-- [x] Update contract addresses in `src/lib/contracts.ts` ✅
-- [x] Test full flow (mint review → upvote → unlock premium) ✅
-- [ ] Record demo video (2-3 min) - **IN PROGRESS**
-- [ ] Vote on 5 other projects (requirement)
-- [ ] Post to m/usdc with `#USDCHackathon ProjectSubmission [SmartContract]`
-- [ ] Also post for AgenticCommerce track
+Kindred is fundamentally an **agentic commerce** platform:
+- Agents stake USDC/KIND to create reviews
+- Agents earn from upvotes and premium unlocks
+- x402 payment protocol for content monetization
+- Economic incentives drive agent behavior
 
-**Deployed Contracts (Base Sepolia):**
+---
+
+## 📝 Submission Post (for Moltbook)
+
+### Title
+```
+#USDCHackathon ProjectSubmission AgenticCommerce
+
+🦞 Kindred: The Trust Layer for Agentic Commerce
+```
+
+### Body
+```
+**Kindred is the decentralized credit protocol where agents earn trust by putting skin in the game.**
+
+## The Problem
+
+Current review platforms fail because:
+- Free reviews → spam and manipulation
+- Upvotes have no cost → meaningless signals
+- Early contributors get no rewards
+- Trust cannot be monetized
+
+Agents in Web3 need reputation systems with:
+- Economic incentives
+- Verifiable trust
+- Monetizable value
+- Autonomous operation
+
+## Our Solution
+
+Kindred transforms reviews into economic primitives:
+
+1. **Pay-to-Comment (x402)**
+   - Stake KIND/USDC to post reviews
+   - Reviews become tradeable ERC-721 NFTs
+   - Premium content unlocked via micropayments
+
+2. **Upvote = Investment**
+   - Voting requires staking tokens
+   - Early upvoters earn from future engagement
+   - Skin in the game → genuine signals
+
+3. **Agent-First Commerce**
+   - Autonomous agents create & monetize reviews
+   - Earnings distributed via smart contracts
+   - Trust score = trading advantage (lower fees)
+
+## Tech Stack
+
+**Smart Contracts (Base):**
+- `KindToken` (ERC-20): Utility token for staking
+- `KindredComment` (ERC-721 + x402): Review NFTs with payment gates
+- `KindredSettlement`: Weekly prediction markets
+- `KindredHook` (Uniswap v4): Reputation-based dynamic fees
+
+**Frontend:**
+- Next.js 14 + Privy Auth
+- Gemini AI for content moderation
+- Real-time on-chain data
+
+**Agentic Layer:**
+- OpenClaw autonomous reviewers
+- 24/7 on-chain activity
+- Twitter integration (@Kindred_rone)
+
+## Agentic Commerce Features
+
+### 1. Agent Earnings
+```solidity
+// Agents earn from their reviews
+createComment(projectId, content, premiumContent, stakeAmount)
+  → Mint ERC-721 NFT
+  → Lock stake in contract
+  → Earn from upvotes (20% share)
+  → Earn from premium unlocks (70% share)
+```
+
+### 2. x402 Micropayments
+```solidity
+unlockPremium(tokenId, unlockAmount)
+  → Pay in USDC/KIND
+  → Split: 70% author, 20% voters, 10% protocol
+  → Instant settlement on-chain
+```
+
+### 3. Reputation Economy
+- High reputation → 0.15% swap fees (vs 0.30% default)
+- Bad reviews lose stake
+- Good reviews earn compounding returns
+
+## Live Demo
+
+**Website:** https://web-dxwfwyhjf-jhinreshs-projects.vercel.app  
+**Contracts (Base Sepolia):**
 - KindToken: `0x75c0915F19Aeb2FAaA821A72b8DE64e52EE7c06B`
-- KindredComment: `0xB6762e27A049A478da74C4a4bA3ba5fd179b76cf`
-- Treasury: `0x872989F7fCd4048acA370161989d3904E37A3cB3`
+- KindredComment: `0xB6762e27A049A478da74C4a4bA3ba5fd179b76cf`  
+- KindredSettlement: [Deploying soon]
 
----
-
-## 🎯 Primary Track: Most Novel Smart Contract
-
-### Project Name
-**Kindred** - Social-Financial Hybrid Protocol
-
-### One-Line Description
-A decentralized reputation protocol where reviews are ERC-721 NFTs with x402 pay-to-unlock, transforming social signals into financial value.
-
-### Problem
-Traditional social platforms have broken incentive models:
-- ❌ Free spam reviews (no skin in the game)
-- ❌ No rewards for early discovery of quality content
-- ❌ Centralized reputation systems
-- ❌ Content creators don't capture value from their insights
-
-### Solution
-Kindred introduces **Pay-to-Comment + Predict** mechanism:
-1. **Stake to review** → ERC-721 NFT minted
-2. **Upvote = Bet** → Early voters earn when review ranks high
-3. **x402 unlock** → Premium content paywall with revenue share
-4. **Reputation Oracle** → Onchain credit score affects DeFi fees
-
-### Novel Smart Contract Patterns
-
-#### 1. ERC-721 Pay-to-Comment NFT (`KindredComment.sol`)
-
-```solidity
-// Reviews are NFTs that can be unlocked for premium content
-function mintReview(
-    string calldata uri,
-    string calldata preview,
-    string calldata premiumContent,
-    uint256 stakeAmount,
-    uint256 unlockPrice
-) external returns (uint256 tokenId)
-```
-
-**Novelty:**
-- Each review = NFT with metadata + locked premium content
-- Dual revenue: stake rewards + unlock fees
-- 70% author / 20% early voters / 10% protocol split
-
-#### 2. Weighted Voting with Stake Allocation
-
-```solidity
-function upvote(uint256 tokenId, uint256 stakeAmount) external {
-    // Vote weight = stake amount
-    // Early voters earn more from unlock fees
-    _updateVoterRewards(tokenId, msg.sender, stakeAmount);
-}
-```
-
-**Novelty:**
-- Upvote = financial prediction (skin in the game)
-- Linear reward distribution based on vote timing
-- Prevents Sybil attacks (requires real capital)
-
-#### 3. x402 Premium Content Unlock
-
-```solidity
-function unlockPremium(uint256 tokenId) external {
-    uint256 price = reviews[tokenId].unlockPrice;
-    kindToken.transferFrom(msg.sender, address(this), price);
-    
-    // 70% to author, 20% to voters, 10% to protocol
-    _distributeUnlockFees(tokenId, price);
-    emit PremiumUnlocked(tokenId, msg.sender);
-}
-```
-
-**Novelty:**
-- Onchain paywalls without centralized backend
-- Automated revenue sharing to multiple parties
-- Incentivizes high-quality, valuable content
-
-#### 4. Reputation Oracle Integration
-
-```solidity
-// KindredHook.sol - Uniswap v4 Hook
-function beforeSwap(
-    address sender,
-    PoolKey calldata key,
-    IPoolManager.SwapParams calldata params,
-    bytes calldata hookData
-) external returns (bytes4) {
-    uint256 reputation = oracle.getScore(sender);
-    uint256 discount = _calculateFeeDiscount(reputation);
-    // High reputation → lower swap fees
-}
-```
-
-**Novelty:**
-- First social reputation → DeFi fee reduction
-- Bridges offchain behavior to onchain benefits
-- Creates flywheel: good reviews → high rep → cheaper trades → more activity
-
-### Technical Highlights
-
-**Stack:**
-- Solidity ^0.8.24 (Foundry)
-- OpenZeppelin contracts
-- Uniswap v4 Hooks
-- Base blockchain (Sepolia testnet)
-
-**Security:**
-- 80+ unit tests (100% passing)
-- Fuzz tests (256 runs each)
-- Slither static analysis (no critical issues)
-- Gas optimizations (all tests < 60k gas)
-
-**Contracts Deployed:**
-- `KindToken`: ERC-20 governance token with Permit (EIP-2612)
-- `KindredComment`: ERC-721 NFT review system with x402
-- `ReputationOracle`: Onchain credit scoring
-- `KindredHook`: Uniswap v4 dynamic fee hook
-
-### Why It's Novel
-
-1. **Social-Financial Fusion**  
-   First protocol to make every review a tradeable, revenue-generating NFT.
-
-2. **Incentive-Aligned Voting**  
-   Upvotes require stake → prevents bots, rewards quality discovery.
-
-3. **Onchain Paywalls**  
-   x402 standard for premium content without Web2 backend.
-
-4. **Cross-Protocol Value**  
-   Reputation from reviews → lower fees in DeFi (first implementation).
-
-5. **Agent-Native**  
-   AI agents can evaluate, vote, and monetize insights through the same contracts.
-
-### Demo
-
-**Live URL:** [TBD - pending deployment]
-
-**Demo Flow:**
-1. Connect wallet (Privy auth)
-2. Stake 100 KIND → Mint review NFT
-3. Other users upvote (stake 50 KIND each)
-4. Review ranks high → early voters earn
-5. Premium content unlocked → fees distributed
-
-**Video:** [TBD - will record after deployment]
-
-### Repository
-
+**Autonomous Agent:** @Kindred_rone on X  
 **GitHub:** https://github.com/openwork-hackathon/team-kindred
 
-**Key Files:**
-- `packages/contracts/src/KindredComment.sol` - Main NFT contract
-- `packages/contracts/src/KindredHook.sol` - Uniswap v4 hook
-- `packages/contracts/test/` - 80+ tests
-- `src/app/` - Next.js frontend
-- `DEPLOYMENT_GUIDE.md` - Deployment instructions
+## Why USDC?
 
-### USDC Integration
+We use USDC as the stable value layer for:
+- **Premium unlocks**: Pay for deep analysis
+- **Staking**: Predictable risk/reward
+- **Settlements**: Weekly distribution
+- **Agent earnings**: Stable unit of account
 
-While we currently use our own KIND token, the protocol is designed for USDC:
-- Replace `kindToken` with USDC address
-- All stake/vote/unlock flows work identically
-- Stable pricing for content unlocks (no volatility)
+In our roadmap:
+- Accept USDC for review staking
+- Settle predictions in USDC
+- Cross-chain bridges via CCTP
+- Multi-token support (USDC + KIND)
 
-**Future:** USDC as base currency for cross-chain compatibility.
+## Impact
 
----
+**For Agents:**
+- Monetize their analysis
+- Build verifiable reputation
+- Earn passive income
 
-## 🛒 Secondary Track: Agentic Commerce
+**For Users:**
+- Trustworthy reviews (skin in game)
+- Access to premium research
+- Invest in early discoveries
 
-### How Kindred Enables Agentic Commerce
+**For DeFi:**
+- First reputation oracle for trading fees
+- Sybil-resistant credit scoring
+- Agent-native commerce layer
 
-#### 1. Pay-to-Participate Economy
+## What's Next
 
-Agents must stake tokens to post reviews, creating a **credible signal**:
-- No spam (costs real money)
-- Quality threshold (stake at risk)
-- Skin in the game (lose stake if downvoted)
-
-#### 2. Prediction Market for Content
-
-Agents act as **liquidity providers** for content quality:
-- Upvote = "I bet this will be valuable"
-- Downvote = "I bet this is low quality"
-- Early correct predictions earn rewards
-
-#### 3. Automated Revenue Streams
-
-Agents can **monetize insights** without human intervention:
-- Write high-quality review → Stake 100 USDC
-- Content ranks #1 → Unlock fees flow to agent wallet
-- 70% author + 20% early voters = passive income
-
-#### 4. Reputation-Based Commerce
-
-High-reputation agents get **preferential treatment**:
-- Lower transaction fees (via KindredHook)
-- Higher visibility (ranking boost)
-- Trusted by other agents (social proof)
-
-### Agent Use Cases
-
-**Research Agent:**
-```
-1. Analyze 100 DeFi protocols
-2. Generate in-depth reports
-3. Stake 1000 USDC per report
-4. Earn unlock fees when traders read analysis
-```
-
-**Discovery Agent:**
-```
-1. Scan for undervalued projects
-2. Upvote early (stake 50 USDC)
-3. If project pumps → reputation increases
-4. Earn from leaderboard rewards + unlock fees
-```
-
-**Arbitrage Agent:**
-```
-1. High reputation from quality reviews
-2. Get 0.05% swap fee (vs 0.3% for low-rep)
-3. Arbitrage profitability increases
-4. Flywheel: profit → more reviews → higher rep
-```
-
-### Why It's Novel for Commerce
-
-1. **Agents Have Skin in the Game**  
-   Every action costs capital → only economically rational moves.
-
-2. **Self-Sustaining Economy**  
-   No human intervention needed for:
-   - Content monetization
-   - Reward distribution
-   - Reputation updates
-
-3. **Composable Incentives**  
-   Reputation earned in Kindred → benefits in other DeFi protocols.
-
-4. **Trustless Coordination**  
-   Agents can collaborate (vote together) without counterparty risk.
+- Multi-chain expansion (USDC on Arbitrum, Optimism)
+- Real-world reviews (restaurants, SaaS)
+- Agent marketplace for research
+- DAO governance
 
 ---
 
-## 📊 Metrics
+**Built with ❤️ by Team Kindred**  
+*Making trust tradeable, one review at a time.*
 
-**Development:**
-- 80+ smart contract tests (100% pass rate)
-- 20 tests for KindredComment alone
-- 4 informational Slither findings (non-critical)
-- Gas benchmarks < 60k per operation
-
-**Readiness:**
-- ✅ Contracts audited and tested (Grade A-, 90/100)
-- ✅ Frontend fully integrated
-- ✅ Privy auth working
-- ✅ Deployed to Base Sepolia testnet
-- ✅ Production build verified
-- ⏳ Demo video in progress
+#USDCHackathon #AgenticCommerce #Base #OnChainReviews
+```
 
 ---
 
-## 🚀 Next Steps
+## 📋 Pre-Submission Checklist
 
-**After Hackathon:**
-1. Deploy to Base mainnet
-2. Integrate Chainlink oracles for price feeds
-3. Launch liquidity mining program
-4. Onboard 10 agent instances as beta users
-5. Partner with DeFi protocols for reputation hook
+Before posting to m/usdc:
 
-**Long-Term Vision:**
-- Become the "Credit Bureau for Web3"
-- Every DeFi protocol checks Kindred reputation
-- Agents build credit scores through quality contributions
+- [ ] Deploy KindredSettlement to Base Sepolia
+- [ ] Update contract addresses in submission
+- [ ] Test live demo flow (stake → review → vote)
+- [ ] Vote on 5 other projects (requirement)
+- [ ] Prepare 2-3 min demo video
+- [ ] Screenshot of autonomous agent activity
 
 ---
 
-## 🏆 Why We Should Win
+## 🎥 Demo Video Script
 
-### Most Novel Smart Contract Track
+### 1. Opening (30s)
+- "Hi, I'm presenting Kindred - the trust layer for agentic commerce"
+- Show landing page
+- "Current review platforms are broken - free posts, meaningless upvotes, no rewards"
 
-1. **First-of-its-kind pattern:** ERC-721 + x402 + stake-based voting
-2. **Cross-protocol integration:** Reputation → DeFi fee discounts
-3. **Production-ready code:** 80+ tests, gas-optimized, audited
-4. **Clear use case:** Solves real problem (spam reviews, no rewards)
-5. **Agent-native design:** Every feature built for autonomous systems
+### 2. Core Demo (90s)
+- **Stake & Review**: "Agents stake KIND tokens to create reviews"
+- **On-Chain Proof**: Show BaseScan transaction
+- **Upvote as Investment**: "Voting requires staking - skin in the game"
+- **Premium Unlock**: "Readers pay USDC for deep analysis via x402"
+- **Earnings Distribution**: "70% author, 20% voters, 10% protocol"
 
-### Agentic Commerce Track
+### 3. Agentic Layer (30s)
+- Show autonomous agent (@Kindred_rone)
+- "Our agent creates reviews 24/7, fully autonomous"
+- Show Twitter feed + on-chain txs
 
-1. **Incentive-aligned:** Agents earn by providing value, not extracting
-2. **Trustless revenue:** No human intervention needed for monetization
-3. **Composable reputation:** Credit score usable across DeFi ecosystem
-4. **Self-sustaining:** Fees fund rewards, no external subsidies needed
-5. **Real economic activity:** Stake, vote, unlock = real USDC flows
-
----
-
-## 📞 Contact
-
-**GitHub:** https://github.com/openwork-hackathon/team-kindred  
-**Telegram:** @jhinresh  
-**Twitter:** @Kindred_rone
+### 4. Closing (30s)
+- "This is real agentic commerce - agents earn, users pay, value flows on-chain"
+- "Built on Base with USDC as the stable settlement layer"
+- "Thank you!"
 
 ---
 
-*Submission prepared by Kindred team for USDC Hackathon on Moltbook.*  
-*Built with ❤️ during OpenClaw Hookathon.*
+## 📊 Voting Strategy
+
+To maximize votes, we should:
+
+1. **Vote on 5 projects** (requirement)
+   - Vote early to show support
+   - Leave thoughtful comments
+   - Build relationships with other agents
+
+2. **Engage in m/usdc**
+   - Reply to questions
+   - Share updates
+   - Demonstrate value
+
+3. **Cross-promote**
+   - Tweet from @Kindred_rone
+   - Share in Moltbook feed
+   - Engage with other submissions
+
+---
+
+## 🚀 Submission Timeline
+
+**Feb 7 Evening:**
+- [ ] Finalize submission text
+- [ ] Record demo video
+- [ ] Deploy remaining contracts
+
+**Feb 8 Morning (before 12 PM PST):**
+- [ ] Post to m/usdc with #USDCHackathon tag
+- [ ] Vote on 5 other projects
+- [ ] Share on X
+- [ ] Monitor for questions
+
+---
+
+**Next: Jensen or JhiNResH to review and approve**
