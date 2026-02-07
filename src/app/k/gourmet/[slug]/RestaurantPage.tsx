@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { MapPin, Star, Users, ArrowLeft, ExternalLink, Award, Utensils, Camera, Clock, DollarSign, ChefHat, AlertCircle } from 'lucide-react'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
 import { ReviewCard } from '@/components/reviews/ReviewCard'
+import { PremiumInsight } from '@/components/gourmet/PremiumInsight'
 
 interface Review {
   id: string
@@ -283,6 +284,12 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
                 <ReviewForm />
               </div>
             )}
+
+            {/* Premium Insight (x402 Unlock) */}
+            <PremiumInsight
+              restaurantId={restaurant.address}
+              restaurantName={restaurant.name}
+            />
 
             {/* Reviews List */}
             <div>
