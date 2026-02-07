@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic' // wagmi/RainbowKit needs browser APIs
+
 import { useState } from "react";
 import { useAccount } from "wagmi";
 

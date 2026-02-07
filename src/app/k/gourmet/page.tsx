@@ -1,4 +1,6 @@
 import { Metadata } from 'next'
+
+export const dynamic = 'force-dynamic' // wagmi/RainbowKit needs browser APIs
 import { GourmetSearchPage } from './GourmetSearchPage'
 import { prisma } from '@/lib/prisma'
 import { BreadcrumbJsonLd } from '@/components/seo/JsonLd'

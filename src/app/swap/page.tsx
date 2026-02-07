@@ -1,4 +1,6 @@
 import { Metadata } from 'next'
+
+export const dynamic = 'force-dynamic' // wagmi/RainbowKit needs browser APIs
 import { SwapInterface } from './SwapInterface'
 
 export const metadata: Metadata = {

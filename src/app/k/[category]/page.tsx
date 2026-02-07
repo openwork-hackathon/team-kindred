@@ -5,6 +5,9 @@ import { getCategoryMetadata, CATEGORY_META } from '@/lib/seo'
 import { BreadcrumbJsonLd, FAQJsonLd } from '@/components/seo/JsonLd'
 import { CategoryPageContent } from './CategoryPageContent'
 
+// Force dynamic rendering (wagmi/RainbowKit needs browser APIs)
+export const dynamic = 'force-dynamic'
+
 // Static params for pre-rendering
 export function generateStaticParams() {
   return [

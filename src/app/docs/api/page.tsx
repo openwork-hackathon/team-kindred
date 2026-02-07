@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic' // wagmi/RainbowKit needs browser APIs
+
 export default function ApiDocsPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white">

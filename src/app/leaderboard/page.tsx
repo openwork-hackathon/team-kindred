@@ -1,4 +1,6 @@
 import { Metadata } from 'next'
+
+export const dynamic = 'force-dynamic' // wagmi/RainbowKit needs browser APIs
 import { MindshareBoard } from '@/components/leaderboard/MindshareBoard'
 import { generateMetadata as generateSeoMetadata } from '@/lib/seo'
 import { BreadcrumbJsonLd } from '@/components/seo/JsonLd'

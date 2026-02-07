@@ -6,6 +6,10 @@ import { Providers } from './providers'
 import { ClientLayout } from '@/components/ClientLayout'
 import { OrganizationJsonLd, WebsiteJsonLd } from '@/components/seo/JsonLd'
 
+// Force all pages to use dynamic rendering (wagmi/RainbowKit requires browser APIs)
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const inter = Inter({ 
   subsets: ['latin'],
   variable: '--font-sans'

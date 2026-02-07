@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic' // wagmi/RainbowKit needs browser APIs
+
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { WalletButton } from '@/components/WalletButton'

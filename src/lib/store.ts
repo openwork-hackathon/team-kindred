@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 export interface Project {
   id: string
@@ -158,6 +158,10 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'kindred-storage', // name of the item in the storage (must be unique)
+      storage: createJSONStorage(() => 
+        typeof window !== 'undefined' ? window.localStorage : ({} as any)
+      ),
+      skipHydration: typeof window === 'undefined', // Skip hydration during SSR
     }
   )
 )
