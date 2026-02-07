@@ -6,15 +6,7 @@ import { LogOut, Copy, Check, Wallet, ExternalLink, ChevronDown } from 'lucide-r
 import { formatEther } from 'viem'
 import { usePublicClient } from 'wagmi'
 import { baseSepolia } from 'viem/chains'
-
-// Conditionally import Privy to avoid errors when not configured
-let usePrivy: any
-try {
-  const privy = require('@privy-io/react-auth')
-  usePrivy = privy.usePrivy
-} catch {
-  usePrivy = () => ({ login: () => {}, logout: () => {}, authenticated: false, user: null })
-}
+import { usePrivy } from '@privy-io/react-auth'
 
 interface WalletButtonProps {
   variant?: 'default' | 'large' | 'minimal'
@@ -30,15 +22,7 @@ export function WalletButton({ variant = 'default', showBalance = true }: Wallet
   const dropdownRef = useRef<HTMLDivElement>(null)
   const publicClient = usePublicClient()
   
-  // Safely call usePrivy - returns defaults if Privy not configured
-  let privyState = { login: () => {}, logout: () => {}, authenticated: false, user: null as any }
-  try {
-    privyState = usePrivy()
-  } catch {
-    // Privy not available, use defaults
-  }
-  
-  const { login, authenticated, user, logout } = privyState
+  const { login, authenticated, user, logout } = usePrivy()
   
   const walletAddress = user?.wallet?.address as `0x${string}` | undefined
 
