@@ -13,7 +13,7 @@ import { CONTRACTS } from './src/lib/contracts'
 // Test configuration
 const TEST_PROJECT_ID = 1
 const TEST_COMMENT_TEXT = "Great project! Testing on-chain voting 🚀"
-const STAKE_AMOUNT = BigInt('1000000000000000000') // 1 KIND token
+const STAKE_AMOUNT = BigInt('150000000000000000000') // 150 KIND tokens (MIN_STAKE is 100)
 
 async function main() {
   console.log('🧪 On-chain Voting Test\n')
@@ -71,13 +71,16 @@ async function main() {
   }
   console.log('')
 
-  // Step 2: Approve KindredComment to spend KIND
+  // Step 2: Approve KindredComment to spend KIND (approve enough for both create and upvote)
   console.log('2️⃣ Approving KIND spending...')
+  const upvoteAmount = BigInt('50000000000000000000') // 50 KIND
+  const totalApproval = STAKE_AMOUNT + upvoteAmount
+  
   const approveTx = await walletClient.writeContract({
     address: kindToken.address,
     abi: kindToken.abi,
     functionName: 'approve',
-    args: [kindredComment.address, STAKE_AMOUNT],
+    args: [kindredComment.address, totalApproval],
   })
   console.log('   Tx:', approveTx)
   
@@ -90,14 +93,24 @@ async function main() {
 
   // Step 3: Create comment with stake
   console.log('3️⃣ Creating comment with stake...')
+  
+  // Convert project ID to bytes32
+  const projectIdBytes32 = `0x${TEST_PROJECT_ID.toString(16).padStart(64, '0')}` as `0x${string}`
+  const contentHash = TEST_COMMENT_TEXT // In production, this would be IPFS hash
+  const premiumHash = '' // No premium content for this test
+  const unlockPrice = BigInt(0) // Free to read
+  const extraStake = STAKE_AMOUNT - BigInt('100000000000000000000') // MIN_STAKE is 100 tokens
+  
   const createCommentTx = await walletClient.writeContract({
     address: kindredComment.address,
     abi: kindredComment.abi,
     functionName: 'createComment',
     args: [
-      BigInt(TEST_PROJECT_ID),
-      TEST_COMMENT_TEXT,
-      STAKE_AMOUNT,
+      projectIdBytes32,
+      contentHash,
+      premiumHash,
+      unlockPrice,
+      extraStake,
     ],
   })
   console.log('   Tx:', createCommentTx)
@@ -129,7 +142,7 @@ async function main() {
     address: kindredComment.address,
     abi: kindredComment.abi,
     functionName: 'upvote',
-    args: [commentId],
+    args: [commentId, upvoteAmount],
   })
   console.log('   Tx:', upvoteTx)
   

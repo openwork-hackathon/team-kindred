@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { ArrowDown, Info, TrendingDown, Award, Shield, AlertCircle, ChevronDown, ArrowDownUp } from 'lucide-react'
+import { useSwapETHForUSDC, useSwapUSDCForETH } from '@/hooks/useSimpleSwap'
+import { formatEther, formatUnits } from 'viem'
 
 // Fee calculation matching KindredHook.sol
 const HIGH_TRUST_THRESHOLD = 850
@@ -167,6 +169,14 @@ export function SwapInterface() {
   const [toToken, setToToken] = useState('USDC')
   const [fromAmount, setFromAmount] = useState('1.0')
   const [toAmount, setToAmount] = useState('0.0')
+  
+  // Real swap hooks
+  const { swapETHForUSDC, isPending: isSwappingETH, isConfirming: isConfirmingETH, isSuccess: isSuccessETH } = useSwapETHForUSDC()
+  const { swapUSDCForETH, isPending: isSwappingUSDC, isConfirming: isConfirmingUSDC, isSuccess: isSuccessUSDC } = useSwapUSDCForETH()
+  
+  const isSwapping = isSwappingETH || isSwappingUSDC
+  const isConfirming = isConfirmingETH || isConfirmingUSDC
+  const isSuccess = isSuccessETH || isSuccessUSDC
 
   // Fetch user reputation
   useEffect(() => {
@@ -225,6 +235,24 @@ export function SwapInterface() {
     setToToken(fromToken)
     setFromAmount(toAmount)
     setToAmount('0.0')
+  }
+  
+  // Handle real swap execution
+  const handleSwap = async () => {
+    if (!address || !fromAmount || parseFloat(fromAmount) <= 0) return
+    
+    try {
+      // Only support ETH <-> USDC for now
+      if (fromToken === 'ETH' && toToken === 'USDC') {
+        await swapETHForUSDC(fromAmount, toAmount) // minUSDCOut = calculated toAmount
+      } else if (fromToken === 'USDC' && toToken === 'ETH') {
+        await swapUSDCForETH(fromAmount, toAmount) // minETHOut = calculated toAmount
+      } else {
+        alert('Only ETH ↔ USDC swaps supported currently')
+      }
+    } catch (error) {
+      console.error('[Swap] Error:', error)
+    }
   }
 
   if (!isConnected) {
@@ -397,9 +425,14 @@ export function SwapInterface() {
         {/* Swap Button */}
         {canTrade ? (
           <button
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-4 rounded-xl transition-all"
+            onClick={handleSwap}
+            disabled={isSwapping || isConfirming || !fromAmount || parseFloat(fromAmount) <= 0}
+            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
           >
-            Swap {fromToken} → {toToken} via KindredHook
+            {isSwapping && '⏳ Waiting for approval...'}
+            {isConfirming && '⏳ Confirming on-chain...'}
+            {isSuccess && '✅ Swap successful!'}
+            {!isSwapping && !isConfirming && !isSuccess && `Swap ${fromToken} → ${toToken}`}
           </button>
         ) : (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
