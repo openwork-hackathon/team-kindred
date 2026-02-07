@@ -4,9 +4,12 @@
  * 
  * This is different from /api/gourmet/insight which is paid premium content.
  * This endpoint provides free basic info for all users.
+ * 
+ * UPDATED: Now reads from ProjectAnalysisCache first (server-side stored data)
  */
 
 import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,12 +33,9 @@ interface RestaurantInfo {
 /**
  * POST /api/gourmet/info
  * Get basic restaurant information (FREE)
+ * Reads from DB cache first, falls back to Gemini generation
  */
 export async function POST(request: Request) {
-  if (!GEMINI_API_KEY) {
-    return NextResponse.json({ error: 'Gemini API not configured' }, { status: 500 })
-  }
-
   try {
     const { restaurantName } = await request.json()
 
@@ -43,9 +43,53 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Restaurant name is required' }, { status: 400 })
     }
 
+    // Step 1: Check ProjectAnalysisCache (using correct schema: query + result)
+    const cacheKey = restaurantName.toLowerCase()
+    
+    const cachedAnalysis = await prisma.projectAnalysisCache.findUnique({
+      where: { query: cacheKey },
+    })
+
+    // Step 2: If we have cached analysis, return it
+    if (cachedAnalysis?.result) {
+      try {
+        const analysis = JSON.parse(cachedAnalysis.result)
+        console.log('[Gourmet Info] Returning cached analysis for:', restaurantName)
+        
+        // Update hit count
+        await prisma.projectAnalysisCache.update({
+          where: { query: cacheKey },
+          data: { hitCount: { increment: 1 } },
+        }).catch(() => {}) // Silent fail on hit count update
+        
+        return NextResponse.json({
+          platformScores: analysis.platformScores,
+          cuisine: analysis.cuisine,
+          priceRange: analysis.priceRange,
+          avgCost: analysis.avgCost,
+          hours: analysis.hours,
+          address: analysis.address,
+          googleMapsUrl: analysis.googleMapsUrl,
+          bestFor: analysis.bestFor,
+          mustTry: analysis.mustTry,
+          warnings: analysis.warnings,
+          criticalReviews: analysis.criticalReviews,
+          _cached: true,
+        })
+      } catch (e) {
+        console.error('[Gourmet Info] Failed to parse cached analysis:', e)
+      }
+    }
+
+    // Step 3: No cache, generate fresh analysis (fallback)
+    if (!GEMINI_API_KEY) {
+      return NextResponse.json({ error: 'Gemini API not configured' }, { status: 500 })
+    }
+
+    console.log('[Gourmet Info] No cache found, generating fresh analysis for:', restaurantName)
     const info = await getRestaurantInfo(restaurantName)
 
-    return NextResponse.json(info)
+    return NextResponse.json({ ...info, _cached: false })
   } catch (error) {
     console.error('[Gourmet Info] Error:', error)
     return NextResponse.json(
