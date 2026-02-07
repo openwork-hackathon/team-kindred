@@ -36,16 +36,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     setMounted(true)
   }, [])
 
-  const content = (
-    <WagmiProvider config={config as any}>
-      <QueryClientProvider client={queryClient}>
-        {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
-      </QueryClientProvider>
-    </WagmiProvider>
-  )
-
   // Only wrap with Privy if configured and available
-  if (isPrivyConfigured && PrivyProvider && mounted) {
+  if (isPrivyConfigured && PrivyProvider) {
     return (
       <PrivyProvider
         appId={PRIVY_APP_ID}
@@ -57,16 +49,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
           loginMethods: ['email', 'wallet', 'google', 'twitter', 'sms'],
           embeddedWallets: {
-            ethereum: {
-              createOnLogin: 'users-without-wallets',
-            },
+            createOnLogin: 'users-without-wallets',
           },
         }}
       >
-        {content}
+        <WagmiProvider config={config as any}>
+          <QueryClientProvider client={queryClient}>
+            {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
+          </QueryClientProvider>
+        </WagmiProvider>
       </PrivyProvider>
     )
   }
 
-  return content
+  // Fallback without Privy
+  return (
+    <WagmiProvider config={config as any}>
+      <QueryClientProvider client={queryClient}>
+        {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
+      </QueryClientProvider>
+    </WagmiProvider>
+  )
 }
