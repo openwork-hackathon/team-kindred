@@ -87,9 +87,10 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
     fetchRestaurantInfo()
   }, [restaurant.name])
 
+  // Photos - recalculate on every render when restaurantInfo changes
   const photos = restaurantInfo?.photos || []
-  const heroImage = photos[1] || photos[0]
-  const logoImage = photos[0]
+  const heroImage = photos.length > 1 ? photos[1] : (photos.length > 0 ? photos[0] : null)
+  const logoImage = photos.length > 0 ? photos[0] : null
 
   return (
     <main className="min-h-screen bg-[#0a0a0b] text-white">
@@ -106,9 +107,10 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
 
       {/* Hero Banner */}
       <div className="relative h-[400px] w-full overflow-hidden bg-gradient-to-br from-orange-500 to-purple-600">
-        {heroImage ? (
+        {heroImage && !loadingInfo ? (
           <>
             <Image
+              key={heroImage}
               src={heroImage}
               alt={restaurant.name}
               fill
@@ -138,6 +140,7 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
           <div className="absolute bottom-0 left-8 translate-y-1/2 z-10">
             <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-4 border-[#0a0a0b] shadow-2xl bg-gray-900">
               <Image
+                key={logoImage}
                 src={logoImage}
                 alt={`${restaurant.name} logo`}
                 fill

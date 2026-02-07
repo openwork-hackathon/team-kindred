@@ -61,6 +61,17 @@ async function getRestaurantInfo(restaurantName: string): Promise<RestaurantInfo
     .replace(/["\n\r\\]/g, '')
     .slice(0, 200)
 
+  // CRITICAL: Get real photos from Google Places API first!
+  let placesData = null
+  try {
+    placesData = await searchPlace(sanitizedName)
+    if (placesData?.photos) {
+      console.log('[Gourmet Info] Got', placesData.photos.length, 'real photos from Google Places')
+    }
+  } catch (e) {
+    console.warn('[Gourmet Info] Google Places failed:', e)
+  }
+
   const prompt = `You are a restaurant information expert. Analyze the restaurant: "${sanitizedName}"
 
 Based on the restaurant name, provide realistic basic information.
@@ -106,7 +117,6 @@ IMPORTANT:
 - Must Try should have 2-5 dishes
 - Warnings should be realistic common issues
 - Critical Reviews should be common complaints
-- Photos: Include 2-3 Unsplash restaurant image URLs (use restaurant-related photos)
 - Return ONLY valid JSON, no other text`
 
   try {
@@ -124,7 +134,7 @@ IMPORTANT:
 
     if (!response.ok) {
       console.error(`Gemini API error: ${response.status}`)
-      return getDefaultInfo(sanitizedName)
+      return getDefaultInfo(sanitizedName, placesData?.photos)
     }
 
     const data = await response.json()
@@ -134,10 +144,19 @@ IMPORTANT:
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0])
+      
+      // CRITICAL: Merge real Google Places photos!
+      if (placesData?.photos && placesData.photos.length > 0) {
+        parsed.photos = placesData.photos
+        console.log('[Gourmet Info] ✅ Merged', placesData.photos.length, 'real photos from Google Places')
+      } else {
+        console.warn('[Gourmet Info] ⚠️  No Google Places photos, using fallback')
+      }
+      
       return parsed
     }
 
-    return getDefaultInfo(sanitizedName)
+    return getDefaultInfo(sanitizedName, placesData?.photos)
 
   } catch (error) {
     console.error('Gemini info error:', error)
@@ -145,7 +164,7 @@ IMPORTANT:
   }
 }
 
-function getDefaultInfo(name: string): RestaurantInfo {
+function getDefaultInfo(name: string, photos?: string[]): RestaurantInfo {
   return {
     platformScores: [
       { platform: 'Google', score: '4.2', reviewCount: 500 },
@@ -165,8 +184,8 @@ function getDefaultInfo(name: string): RestaurantInfo {
     criticalReviews: [
       { issue: 'Wait times can be long during peak hours', source: 'Community' },
     ],
-    // Default restaurant photos from Unsplash
-    photos: [
+    // Use Google Places photos if available, otherwise fallback to Unsplash
+    photos: photos && photos.length > 0 ? photos : [
       'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400', // Restaurant interior
       'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800', // Restaurant banner
       'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400', // Food close-up
