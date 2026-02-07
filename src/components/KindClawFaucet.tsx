@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { CircleWalletButton } from '@/components/CircleWalletButton'
 import { Droplet, Clock, Check, Loader2 } from 'lucide-react'
 import { CONTRACTS } from '@/lib/contracts'
 
@@ -73,7 +73,7 @@ export function KindClawFaucet() {
             </div>
           </div>
         </div>
-        <ConnectButton />
+        <CircleWalletButton variant="large" />
       </div>
     )
   }
