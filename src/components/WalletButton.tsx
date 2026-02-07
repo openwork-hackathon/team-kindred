@@ -170,6 +170,15 @@ export function WalletButton({ variant = 'default', showBalance = true }: Wallet
             </div>
           </div>
 
+          {/* Network */}
+          <div className="px-4 py-3 border-b border-[#2a2a2e] flex items-center justify-between">
+            <span className="text-xs text-gray-400">Network</span>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
+              <span className="text-sm font-medium text-white">Base Sepolia</span>
+            </div>
+          </div>
+
           {/* Balances */}
           {showBalance && walletAddress && (
             <div className="p-4 border-b border-[#2a2a2e]">
