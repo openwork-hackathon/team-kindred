@@ -4,23 +4,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
 import { config } from '../config/wagmi'
+import { PrivyProvider } from '@privy-io/react-auth'
 
 // Privy App ID - get from https://console.privy.io
-const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID
+const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || 'cmkncaz3r0047ic0dtanwx48p'
 
-// Check if Privy App ID is valid (starts with 'cl' or 'cm')
-const isPrivyConfigured = PRIVY_APP_ID && (PRIVY_APP_ID.startsWith('cl') || PRIVY_APP_ID.startsWith('cm'))
-
-// Dynamically import PrivyProvider only when configured
-let PrivyProvider: any = null
-if (isPrivyConfigured) {
-  try {
-    const privy = require('@privy-io/react-auth')
-    PrivyProvider = privy.PrivyProvider
-  } catch {
-    // Privy not available
-  }
-}
+console.log('[Providers] Initializing with Privy App ID:', PRIVY_APP_ID)
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // Create QueryClient inside component to prevent SSR issues
@@ -36,38 +25,26 @@ export function Providers({ children }: { children: React.ReactNode }) {
     setMounted(true)
   }, [])
 
-  // Only wrap with Privy if configured and available
-  if (isPrivyConfigured && PrivyProvider) {
-    return (
-      <PrivyProvider
-        appId={PRIVY_APP_ID}
-        config={{
-          appearance: {
-            theme: 'dark',
-            accentColor: '#FF6B35',
-            logo: '/kindred-logo.png',
-          },
-          loginMethods: ['email', 'wallet', 'google', 'twitter', 'sms'],
-          embeddedWallets: {
-            createOnLogin: 'users-without-wallets',
-          },
-        }}
-      >
-        <WagmiProvider config={config as any}>
-          <QueryClientProvider client={queryClient}>
-            {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
-          </QueryClientProvider>
-        </WagmiProvider>
-      </PrivyProvider>
-    )
-  }
-
-  // Fallback without Privy
   return (
-    <WagmiProvider config={config as any}>
-      <QueryClientProvider client={queryClient}>
-        {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
-      </QueryClientProvider>
-    </WagmiProvider>
+    <PrivyProvider
+      appId={PRIVY_APP_ID}
+      config={{
+        appearance: {
+          theme: 'dark',
+          accentColor: '#FF6B35',
+          logo: '/kindred-logo.png',
+        },
+        loginMethods: ['email', 'wallet', 'google', 'twitter', 'sms'],
+        embeddedWallets: {
+          createOnLogin: 'users-without-wallets',
+        },
+      }}
+    >
+      <WagmiProvider config={config as any}>
+        <QueryClientProvider client={queryClient}>
+          {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
+        </QueryClientProvider>
+      </WagmiProvider>
+    </PrivyProvider>
   )
 }
