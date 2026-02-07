@@ -474,7 +474,7 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
                     <div className="pt-3 border-t border-gray-700">
                       <span className="text-xs text-yellow-400 uppercase flex items-center gap-2 mb-2">
                         <AlertCircle className="w-4 h-4" />
-                        注意事項
+                        Things to Note
                       </span>
                       <ul className="space-y-1">
                         {restaurantInfo.warnings.map((w, i) => (
@@ -492,7 +492,7 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
                     <div className="pt-3 border-t border-gray-700">
                       <span className="text-xs text-red-400 uppercase flex items-center gap-2 mb-2">
                         <AlertCircle className="w-4 h-4" />
-                        常見差評
+                        Common Complaints
                       </span>
                       <ul className="space-y-1">
                         {restaurantInfo.criticalReviews.map((cr, i) => {
