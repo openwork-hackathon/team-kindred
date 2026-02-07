@@ -5,17 +5,27 @@
 
 import KindredCommentABI from './abi/KindredComment.json'
 import KindTokenABI from './abi/KindToken.json'
+import KindClawTokenABI from './abi/KindClawToken.json'
 import KindredHookABI from './abi/KindredHook.json'
 import KindredHookV2ABI from './abi/KindredHookV2.json'
 import ReputationOracleABI from './abi/ReputationOracle.json'
 import SimpleSwapABI from './abi/SimpleSwap.json'
 
 export const CONTRACTS = {
-  // Base Sepolia (testnet) - Deployed 2026-02-05 (core) + 2026-02-07 (hook)
+  // Base Sepolia (testnet) - Deployed 2026-02-05 (core) + 2026-02-07 (hook + arcade tokens)
   baseSepolia: {
     kindToken: {
       address: '0xf0b5477386810559e3e8c03f10dd10b0a9222b2a' as `0x${string}`,
       abi: KindTokenABI,
+    },
+    // Arcade Tokens (Faucet) - Deployed 2026-02-07
+    kindclaw: {
+      address: '0x03c1F6E4f6EfF220dE00b508005F2c7dc3Bd925D' as `0x${string}`,
+      abi: KindClawTokenABI,
+    },
+    openwork: {
+      address: '0x299c30dd5974bf4d5bfe42d340ca40462816ab07' as `0x${string}`,
+      abi: KindTokenABI, // Standard ERC-20
     },
     kindredComment: {
       address: '0xb3bb93089404ce4c2f64535e5d513093625fedc8' as `0x${string}`,
@@ -89,5 +99,8 @@ export function calculateSwapFee(reputationScore: number): number {
     return FEE_TIERS.MEDIUM_TRUST.feePercent
   } else {
     return FEE_TIERS.LOW_TRUST.feePercent
+  }
+}
+RUST.feePercent
   }
 }

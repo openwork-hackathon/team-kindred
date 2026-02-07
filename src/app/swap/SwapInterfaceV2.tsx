@@ -22,12 +22,21 @@ function calculateFee(score: number): number {
   return FEE_LOW_TRUST
 }
 
+type Token = 'ETH' | 'USDC' | 'KINDCLAW' | 'OPENWORK'
+
+const TOKENS = {
+  ETH: { symbol: 'ETH', name: 'Ethereum', decimals: 18, icon: 'Ξ' },
+  USDC: { symbol: 'USDC', name: 'USD Coin', decimals: 6, icon: '$' },
+  KINDCLAW: { symbol: 'KINDCLAW', name: 'Kindred Arcade', decimals: 18, icon: '🦞' },
+  OPENWORK: { symbol: 'OPENWORK', name: 'Builder Quest', decimals: 18, icon: '🔨' },
+}
+
 export default function SwapInterfaceV2() {
   const { address, isConnected } = useAccount()
   const [fromAmount, setFromAmount] = useState('')
   const [toAmount, setToAmount] = useState('0.0')
-  const [fromToken, setFromToken] = useState<'ETH' | 'USDC'>('ETH')
-  const [toToken, setToToken] = useState<'ETH' | 'USDC'>('USDC')
+  const [fromToken, setFromToken] = useState<Token>('ETH')
+  const [toToken, setToToken] = useState<Token>('USDC')
   const [reputation, setReputation] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -65,15 +74,17 @@ export default function SwapInterfaceV2() {
     const amount = parseFloat(fromAmount)
     const fee = reputation !== null ? calculateFee(reputation) : FEE_LOW_TRUST
     
-    if (fromToken === 'ETH' && toToken === 'USDC') {
-      // 1 ETH = 2000 USDC
-      const output = amount * 2000 * (1 - fee / 100)
-      setToAmount(output.toFixed(2))
-    } else if (fromToken === 'USDC' && toToken === 'ETH') {
-      // 1 USDC = 0.0005 ETH
-      const output = amount * 0.0005 * (1 - fee / 100)
-      setToAmount(output.toFixed(6))
+    // Exchange rates (simplified for demo)
+    const rates: Record<string, Record<string, number>> = {
+      ETH: { USDC: 2000, KINDCLAW: 100000, OPENWORK: 50000 },
+      USDC: { ETH: 0.0005, KINDCLAW: 50, OPENWORK: 25 },
+      KINDCLAW: { ETH: 0.00001, USDC: 0.02, OPENWORK: 0.5 },
+      OPENWORK: { ETH: 0.00002, USDC: 0.04, KINDCLAW: 2 },
     }
+
+    const rate = rates[fromToken]?.[toToken] || 0
+    const output = amount * rate * (1 - fee / 100)
+    setToAmount(output.toFixed(fromToken === 'USDC' || toToken === 'USDC' ? 2 : 6))
   }, [fromAmount, fromToken, toToken, reputation])
 
   const handleFlip = () => {
@@ -88,10 +99,14 @@ export default function SwapInterfaceV2() {
     if (!address || !fromAmount || parseFloat(fromAmount) <= 0) return
 
     try {
+      // Only ETH <-> USDC supported via SimpleSwap contract
       if (fromToken === 'ETH' && toToken === 'USDC') {
         await swapETHForUSDC(fromAmount, toAmount)
       } else if (fromToken === 'USDC' && toToken === 'ETH') {
         await swapUSDCForETH(fromAmount, toAmount)
+      } else {
+        // For KINDCLAW/OPENWORK, show coming soon message
+        alert(`${fromToken} ↔ ${toToken} swap coming soon! Currently supports ETH ↔ USDC only.`)
       }
     } catch (error) {
       console.error('Swap failed:', error)
@@ -162,10 +177,17 @@ export default function SwapInterfaceV2() {
                   className="bg-transparent text-3xl font-bold outline-none w-full text-white"
                   disabled={!canTrade}
                 />
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-lg">
-                  <span className="text-2xl">{fromToken === 'ETH' ? 'Ξ' : '$'}</span>
-                  <span className="text-lg font-semibold text-white">{fromToken}</span>
-                </div>
+                <select
+                  value={fromToken}
+                  onChange={(e) => setFromToken(e.target.value as Token)}
+                  className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white font-semibold cursor-pointer hover:bg-white/10 transition-colors"
+                >
+                  {Object.entries(TOKENS).map(([key, token]) => (
+                    <option key={key} value={key} className="bg-slate-900">
+                      {token.icon} {token.symbol}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="text-sm text-slate-500">
                 Balance: {fromToken === 'ETH' ? '0.5' : '1,234.56'} {fromToken}
@@ -190,10 +212,17 @@ export default function SwapInterfaceV2() {
             <div className="bg-black/40 border border-white/10 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-3xl font-bold text-white">{toAmount}</div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-lg">
-                  <span className="text-2xl">{toToken === 'ETH' ? 'Ξ' : '$'}</span>
-                  <span className="text-lg font-semibold text-white">{toToken}</span>
-                </div>
+                <select
+                  value={toToken}
+                  onChange={(e) => setToToken(e.target.value as Token)}
+                  className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white font-semibold cursor-pointer hover:bg-white/10 transition-colors"
+                >
+                  {Object.entries(TOKENS).map(([key, token]) => (
+                    <option key={key} value={key} className="bg-slate-900">
+                      {token.icon} {token.symbol}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="text-sm text-slate-500">
                 Balance: {toToken === 'ETH' ? '0.5' : '1,234.56'} {toToken}

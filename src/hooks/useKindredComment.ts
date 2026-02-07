@@ -1,5 +1,6 @@
 /**
  * On-chain interaction hooks for KindredComment contract
+ * Uses $KINDCLAW token for staking (not ETH)
  */
 
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi'
@@ -8,6 +9,7 @@ import { parseEther, type Address } from 'viem'
 import { CONTRACTS } from '@/lib/contracts'
 
 const CONTRACT = CONTRACTS.baseSepolia.kindredComment
+const KINDCLAW = CONTRACTS.baseSepolia.kindclaw // Use KINDCLAW for staking
 
 /**
  * Hook for creating a comment (minting NFT)
