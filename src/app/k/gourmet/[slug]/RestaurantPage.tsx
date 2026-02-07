@@ -67,7 +67,7 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
         const res = await fetch('/api/gourmet/insight', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ restaurantName: restaurant.name }),
+          body: JSON.stringify({ restaurantId: restaurant.address, restaurantName: restaurant.name }),
         })
         
         if (res.ok) {
