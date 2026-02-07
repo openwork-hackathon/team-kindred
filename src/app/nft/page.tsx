@@ -1,9 +1,8 @@
-import { Metadata } from 'next'
-import { NFTGallery } from './NFTGallery'
+import { NFTGallery } from '@/components/nft/NFTGallery'
 
-export const metadata: Metadata = {
-  title: 'My NFTs - Kindred',
-  description: 'View your review NFTs',
+export const metadata = {
+  title: 'NFT Gallery | Kindred',
+  description: 'Your ERC-404 review NFTs - unique, tradable, and valuable',
 }
 
 export default function NFTPage() {

@@ -1,9 +1,8 @@
-import { Metadata } from 'next'
-import { WeeklySettlement } from './WeeklySettlement'
+import { WeeklySettlement } from '@/components/settlement/WeeklySettlement'
 
-export const metadata: Metadata = {
-  title: 'Weekly Settlement - Kindred',
-  description: 'Predict project rankings and earn rewards',
+export const metadata = {
+  title: 'Weekly Settlement | Kindred',
+  description: 'Predict project rankings and earn rewards for early discovery',
 }
 
 export default function SettlementPage() {
