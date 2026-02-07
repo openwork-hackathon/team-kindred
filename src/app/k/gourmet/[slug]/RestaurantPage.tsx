@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Star, Users, TrendingUp, ArrowLeft, ExternalLink, Award, Utensils, Camera } from 'lucide-react'
+import { MapPin, Star, Users, TrendingUp, ArrowLeft, ExternalLink, Award, Utensils, Camera, Clock, DollarSign, ChefHat } from 'lucide-react'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
 import { ReviewCard } from '@/components/reviews/ReviewCard'
 
@@ -36,13 +36,65 @@ interface Restaurant {
   reviews: Review[]
 }
 
+interface RestaurantInfo {
+  platformScores?: Array<{ platform: string; score: string; reviewCount?: number }>
+  cuisine?: string
+  priceRange?: string
+  avgCost?: string
+  hours?: string
+  address?: string
+  googleMapsUrl?: string
+  bestFor?: string[]
+  mustTry?: Array<{ name: string; price?: string; description?: string }>
+  warnings?: string[]
+  criticalReviews?: Array<{ issue: string; source?: string } | string>
+}
+
 interface RestaurantPageProps {
   restaurant: Restaurant
 }
 
 export function RestaurantPage({ restaurant }: RestaurantPageProps) {
   const [showReviewForm, setShowReviewForm] = useState(false)
+  const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo | null>(null)
+  const [loadingInfo, setLoadingInfo] = useState(true)
   const averageRating = restaurant.avgRating
+
+  // Fetch restaurant details from Maat API
+  useEffect(() => {
+    async function fetchRestaurantInfo() {
+      try {
+        const res = await fetch('/api/gourmet/insight', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ restaurantName: restaurant.name }),
+        })
+        
+        if (res.ok) {
+          const data = await res.json()
+          setRestaurantInfo({
+            platformScores: data.platformScores,
+            cuisine: data.cuisine,
+            priceRange: data.priceRange,
+            avgCost: data.avgCost,
+            hours: data.hours,
+            address: data.address,
+            googleMapsUrl: data.googleMapsUrl,
+            bestFor: data.bestFor,
+            mustTry: data.mustTry,
+            warnings: data.warnings,
+            criticalReviews: data.criticalReviews,
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch restaurant info:', error)
+      } finally {
+        setLoadingInfo(false)
+      }
+    }
+
+    fetchRestaurantInfo()
+  }, [restaurant.name])
 
   return (
     <main className="min-h-screen bg-[#0a0a0b] text-white pt-8">
@@ -154,7 +206,8 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
+            {/* Restaurant Stats */}
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 sticky top-8">
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <Award className="w-5 h-5 text-orange-400" />
@@ -188,6 +241,171 @@ export function RestaurantPage({ restaurant }: RestaurantPageProps) {
                 </div>
               </div>
             </div>
+
+            {/* Restaurant Info (from Maat API) */}
+            {loadingInfo ? (
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+                <div className="animate-pulse space-y-3">
+                  <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+                </div>
+              </div>
+            ) : restaurantInfo ? (
+              <div className="bg-gray-900 border border-orange-500/20 rounded-xl p-6">
+                <h3 className="text-xl font-bold text-orange-400 mb-4 flex items-center gap-2">
+                  <Utensils className="w-5 h-5" />
+                  Restaurant Info
+                </h3>
+
+                <div className="space-y-4">
+                  {/* Platform Ratings */}
+                  {restaurantInfo.platformScores && restaurantInfo.platformScores.length > 0 && (
+                    <div className="pb-3 border-b border-gray-700">
+                      <span className="text-xs text-gray-400 uppercase block mb-2">⭐ Platform Ratings</span>
+                      <div className="flex flex-wrap gap-2">
+                        {restaurantInfo.platformScores.map((ps, i) => (
+                          <div key={i} className="bg-black/30 border border-gray-700 rounded-lg px-3 py-1.5 flex items-center gap-2">
+                            <span className="text-xs text-gray-400">{ps.platform}</span>
+                            <span className="text-sm font-bold text-orange-400">{ps.score}</span>
+                            {ps.reviewCount && <span className="text-[10px] text-gray-500">({ps.reviewCount})</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cuisine */}
+                  {restaurantInfo.cuisine && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400 uppercase flex items-center gap-2">
+                        <ChefHat className="w-4 h-4" />
+                        Cuisine
+                      </span>
+                      <span className="text-sm font-semibold text-gray-300">{restaurantInfo.cuisine}</span>
+                    </div>
+                  )}
+
+                  {/* Price Range */}
+                  {restaurantInfo.priceRange && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400 uppercase flex items-center gap-2">
+                        <DollarSign className="w-4 h-4" />
+                        Price Range
+                      </span>
+                      <span className="text-sm font-semibold text-orange-400">{restaurantInfo.priceRange}</span>
+                    </div>
+                  )}
+
+                  {/* Average Cost */}
+                  {restaurantInfo.avgCost && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400 uppercase">Avg Cost</span>
+                      <span className="text-sm text-gray-300">{restaurantInfo.avgCost}</span>
+                    </div>
+                  )}
+
+                  {/* Hours */}
+                  {restaurantInfo.hours && (
+                    <div className="pt-2 border-t border-gray-700">
+                      <span className="text-xs text-gray-400 uppercase flex items-center gap-2 mb-1">
+                        <Clock className="w-4 h-4" />
+                        Hours
+                      </span>
+                      <span className="text-sm text-gray-300">{restaurantInfo.hours}</span>
+                    </div>
+                  )}
+
+                  {/* Address */}
+                  {restaurantInfo.address && (
+                    <div className="pt-2 border-t border-gray-700">
+                      <span className="text-xs text-gray-400 uppercase flex items-center gap-2 mb-1">
+                        <MapPin className="w-4 h-4" />
+                        Address
+                      </span>
+                      <span className="text-sm text-gray-300">{restaurantInfo.address}</span>
+                    </div>
+                  )}
+
+                  {/* Google Maps Link */}
+                  {restaurantInfo.googleMapsUrl && (
+                    <div className="pt-3 border-t border-gray-700">
+                      <a 
+                        href={restaurantInfo.googleMapsUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-orange-400 hover:text-orange-300 transition"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        View on Google Maps
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Best For Tags */}
+                  {restaurantInfo.bestFor && restaurantInfo.bestFor.length > 0 && (
+                    <div className="pt-3 border-t border-gray-700">
+                      <span className="text-xs text-gray-400 uppercase block mb-2">Best For</span>
+                      <div className="flex flex-wrap gap-2">
+                        {restaurantInfo.bestFor.map((tag, i) => (
+                          <span key={i} className="px-2 py-1 bg-orange-500/10 text-orange-400 text-xs rounded-full">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Must Try Dishes */}
+                  {restaurantInfo.mustTry && restaurantInfo.mustTry.length > 0 && (
+                    <div className="pt-3 border-t border-gray-700">
+                      <span className="text-xs text-gray-400 uppercase block mb-2">🌟 Must Try</span>
+                      <div className="space-y-2">
+                        {restaurantInfo.mustTry.slice(0, 5).map((dish, i) => (
+                          <div key={i} className="bg-black/20 p-2 rounded text-sm">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-white">{dish.name}</span>
+                              {dish.price && <span className="text-orange-400">{dish.price}</span>}
+                            </div>
+                            {dish.description && <p className="text-xs text-gray-400 mt-1">{dish.description}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Warnings */}
+                  {restaurantInfo.warnings && restaurantInfo.warnings.length > 0 && (
+                    <div className="pt-3 border-t border-gray-700">
+                      <span className="text-xs text-yellow-400 uppercase block mb-2">⚠️ 注意事項</span>
+                      <ul className="space-y-1">
+                        {restaurantInfo.warnings.map((w, i) => (
+                          <li key={i} className="text-sm text-yellow-200/80">• {w}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Critical Reviews */}
+                  {restaurantInfo.criticalReviews && restaurantInfo.criticalReviews.length > 0 && (
+                    <div className="pt-3 border-t border-gray-700">
+                      <span className="text-xs text-red-400 uppercase block mb-2">😤 常見差評</span>
+                      <ul className="space-y-1">
+                        {restaurantInfo.criticalReviews.map((cr, i) => {
+                          const issue = typeof cr === 'string' ? cr : cr.issue
+                          const source = typeof cr === 'string' ? null : cr.source
+                          return (
+                            <li key={i} className="text-sm text-red-200/80">
+                              • {issue} {source && <span className="text-red-400/60">({source})</span>}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
