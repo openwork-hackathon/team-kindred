@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Menu, X, Search, Bot, SquarePen } from 'lucide-react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { useAccount } from 'wagmi'
 import { CreateReviewModal } from '@/components/reviews/CreateReviewModal'
 import { SearchModal } from '@/components/search/SearchModal'
 
@@ -95,7 +96,65 @@ export function Header() {
               <span>Agent</span>
             </button>
             
-            <ConnectButton />
+            <ConnectButton.Custom>
+              {({
+                account,
+                chain,
+                openAccountModal,
+                openChainModal,
+                openConnectModal,
+                mounted,
+              }) => {
+                const ready = mounted
+                const connected = ready && account && chain
+
+                return (
+                  <div
+                    {...(!ready && {
+                      'aria-hidden': true,
+                      style: {
+                        opacity: 0,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                      },
+                    })}
+                  >
+                    {(() => {
+                      if (!connected) {
+                        return (
+                          <button
+                            onClick={openConnectModal}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+                          >
+                            Connect
+                          </button>
+                        )
+                      }
+
+                      return (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={openChainModal}
+                            className="flex items-center gap-1 px-2 py-1.5 bg-[#1a1a1d] border border-[#2a2a2e] rounded-lg text-xs text-[#adadb0] hover:bg-[#222] transition-colors"
+                          >
+                            {chain.hasIcon && chain.iconUrl && (
+                              <img src={chain.iconUrl} alt={chain.name ?? 'Chain'} className="w-4 h-4 rounded-full" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => router.push(`/passport/${account.address}`)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1d] border border-[#2a2a2e] rounded-lg text-sm text-white hover:bg-[#222] hover:border-purple-500/50 transition-colors"
+                          >
+                            <span className="text-purple-400">🦞</span>
+                            {account.displayName}
+                          </button>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )
+              }}
+            </ConnectButton.Custom>
 
             {/* Mobile Menu Toggle */}
             <button
