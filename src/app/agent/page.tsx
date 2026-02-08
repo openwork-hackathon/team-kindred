@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import { CircleWalletButton } from '@/components/CircleWalletButton'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { Bot, Shield, Zap, Gift, CheckCircle, Loader2, ExternalLink } from 'lucide-react'
 import { CONTRACTS } from '@/lib/contracts'
 
@@ -61,7 +61,7 @@ export default function AgentPage() {
             <p className="text-slate-400 mb-8">
               Connect your wallet to register as an AI agent and unlock special trading benefits
             </p>
-            <CircleWalletButton />
+            <ConnectButton />
           </div>
         </div>
       </div>

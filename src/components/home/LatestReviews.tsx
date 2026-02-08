@@ -18,6 +18,62 @@ interface Review {
   createdAt: string
 }
 
+// Mock reviews for demo
+const MOCK_REVIEWS: Review[] = [
+  {
+    id: '1',
+    targetName: 'Uniswap V4',
+    targetAddress: '0x1234567890abcdef1234567890abcdef12345678',
+    rating: 4.8,
+    reviewerAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+    content: 'The hooks system is revolutionary. Finally able to customize AMM behavior without forking the entire protocol. Gas efficiency is incredible - seeing 30% savings on complex swaps.',
+    upvotes: 127,
+    downvotes: 3,
+    stakeAmount: '5000',
+    category: 'k/defi',
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: '2',
+    targetName: 'Hyperliquid',
+    targetAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
+    rating: 4.5,
+    reviewerAddress: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+    content: 'Best perp DEX experience I\'ve had. Sub-second execution, deep liquidity on majors. The points system is addictive but the product speaks for itself. Funding rates are fair.',
+    upvotes: 89,
+    downvotes: 7,
+    stakeAmount: '2500',
+    category: 'k/perp-dex',
+    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: '3',
+    targetName: 'Polymarket',
+    targetAddress: '0x9876543210fedcba9876543210fedcba98765432',
+    rating: 4.2,
+    reviewerAddress: '0x2B5AD5c4795c026514f8317c7a215E218DcCD6cF',
+    content: 'Great for political markets but UI could use work. Settlement is reliable. Wish there were more crypto-native markets. The USDC integration on Polygon makes deposits smooth.',
+    upvotes: 56,
+    downvotes: 12,
+    stakeAmount: '1000',
+    category: 'k/prediction',
+    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: '4',
+    targetName: 'Aave V3',
+    targetAddress: '0xfedcba9876543210fedcba9876543210fedcba98',
+    rating: 4.7,
+    reviewerAddress: '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199',
+    content: 'E-mode is a game changer for stablecoin strategies. Cross-chain liquidity through portals works seamlessly. Risk parameters are conservative but that\'s the point. Battle-tested.',
+    upvotes: 203,
+    downvotes: 8,
+    stakeAmount: '10000',
+    category: 'k/defi',
+    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+  },
+]
+
 export function LatestReviews() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,11 +81,14 @@ export function LatestReviews() {
   useEffect(() => {
     async function fetchReviews() {
       try {
-        const res = await fetch('/api/reviews?sort=new&limit=3')
+        const res = await fetch('/api/reviews?sort=new&limit=4')
         const data = await res.json()
-        setReviews(data.reviews || [])
+        // Use mock reviews if no real reviews exist
+        setReviews(data.reviews?.length > 0 ? data.reviews : MOCK_REVIEWS)
       } catch (error) {
         console.error('Failed to fetch reviews:', error)
+        // Fallback to mock reviews on error
+        setReviews(MOCK_REVIEWS)
       } finally {
         setLoading(false)
       }

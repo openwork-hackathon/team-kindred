@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
-import { CircleWalletButton } from '@/components/CircleWalletButton'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { ArrowDown, Info, TrendingDown, Award, Shield, AlertCircle, ChevronDown, ArrowDownUp } from 'lucide-react'
 import { useSwapETHForUSDC, useSwapUSDCForETH } from '@/hooks/useSimpleSwap'
 import { formatEther, formatUnits } from 'viem'
@@ -285,7 +285,7 @@ export function SwapInterface() {
             Connect your wallet to see your reputation and start trading with dynamic fees
           </p>
           <div className="flex justify-center">
-            <CircleWalletButton variant="large" />
+            <ConnectButton />
           </div>
         </div>
       </div>

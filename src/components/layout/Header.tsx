@@ -59,25 +59,27 @@ export function Header() {
             </Link>
           </div>
 
-          {/* Center: Search Bar (opens modal) */}
-          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-[480px] hidden md:block">
-            <button 
-              onClick={() => setIsSearchOpen(true)}
-              className="w-full relative group"
-            >
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b6b70] group-hover:text-purple-500 transition-colors">
-                <Search className="w-4 h-4" />
-              </div>
-              <div className="w-full bg-[#111113] border border-[#1f1f23] rounded-lg py-2.5 pl-10 pr-4 text-sm text-left text-[#6b6b70] hover:border-purple-500/50 hover:bg-[#0d0d0e] transition-all">
-                Search projects, reviews, or analyze with AI...
-              </div>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border border-[#2a2a2e] bg-[#1a1a1d] px-1.5 font-mono text-[10px] font-medium text-[#adadb0]">
-                  ⌘K
-                </kbd>
-              </div>
-            </button>
-          </div>
+          {/* Center: Search Bar (opens modal) - hidden on gourmet pages */}
+          {!pathname.startsWith('/k/gourmet') && (
+            <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-[480px] hidden md:block">
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="w-full relative group"
+              >
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b6b70] group-hover:text-purple-500 transition-colors">
+                  <Search className="w-4 h-4" />
+                </div>
+                <div className="w-full bg-[#111113] border border-[#1f1f23] rounded-lg py-2.5 pl-10 pr-4 text-sm text-left text-[#6b6b70] hover:border-purple-500/50 hover:bg-[#0d0d0e] transition-all">
+                  Search projects, reviews, or analyze with AI...
+                </div>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <kbd className="hidden sm:inline-flex h-5 items-center gap-1 rounded border border-[#2a2a2e] bg-[#1a1a1d] px-1.5 font-mono text-[10px] font-medium text-[#adadb0]">
+                    ⌘K
+                  </kbd>
+                </div>
+              </button>
+            </div>
+          )}
 
           {/* Right: Actions */}
           <div className="flex items-center gap-3">
