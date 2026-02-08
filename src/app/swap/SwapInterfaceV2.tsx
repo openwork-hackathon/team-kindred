@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
-import { CircleWalletButton } from '@/components/CircleWalletButton'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { ArrowDownUp, Shield, Award } from 'lucide-react'
 import { useSwapETHForUSDC, useSwapUSDCForETH } from '@/hooks/useSimpleSwap'
 import { PriorityBadge } from '@/components/swap/PriorityBadge'
@@ -122,7 +122,16 @@ export default function SwapInterfaceV2() {
           <p className="text-slate-400 mb-8">
             Connect to see your reputation, priority level, and start trading with dynamic fees
           </p>
-          <CircleWalletButton />
+          <ConnectButton.Custom>
+            {({ openConnectModal }) => (
+              <button
+                onClick={openConnectModal}
+                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold rounded-xl transition-all hover:scale-105"
+              >
+                Connect Wallet
+              </button>
+            )}
+          </ConnectButton.Custom>
         </div>
       </div>
     )
