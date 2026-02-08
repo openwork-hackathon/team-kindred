@@ -1,14 +1,9 @@
-import { createConfig, http } from 'wagmi'
+import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { mainnet, polygon, base, sepolia, baseSepolia } from 'wagmi/chains'
 
-export const config = createConfig({
+export const config = getDefaultConfig({
+  appName: 'Kindred',
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'kindred-app',
   chains: [baseSepolia, base, mainnet, polygon, sepolia],
-  transports: {
-    [baseSepolia.id]: http(),
-    [base.id]: http(),
-    [mainnet.id]: http(),
-    [polygon.id]: http(),
-    [sepolia.id]: http(),
-  },
-  ssr: true, // Enable server-side rendering support
+  ssr: true,
 })

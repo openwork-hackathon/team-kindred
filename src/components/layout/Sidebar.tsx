@@ -9,28 +9,20 @@ import {
   Flame,
   Trophy,
   Bot,
-  Store,
-  Key,
-  Terminal,
   BarChart2,
   Coins,
-  Dog,
   BookOpen,
   ShieldCheck,
   HelpCircle,
   ChevronDown,
   Plus,
   PanelLeftClose,
-  Settings,
-  ToggleLeft,
   Repeat,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 
 // Types
 type SidebarSection =
-  | "agent-hub"
-  | "active-agents"
   | "communities"
   | "explore-communities"
   | "my-boards"
@@ -45,13 +37,10 @@ interface SidebarProps {
 export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    "agent-hub": true,
-    "active-agents": true,
     "explore-communities": true,
     communities: true,
     "my-boards": true,
   });
-  const [agentMode, setAgentMode] = useState(false);
   const communities = useStore(state => state.communities)
   const joinedCommunityIds = useStore(state => state.joinedCommunityIds)
   
@@ -122,117 +111,6 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             </span>
           </Link>
         </div>
-      </div>
-
-      <div className="h-px bg-[#1f1f23] mx-4 my-3" />
-
-      {/* Agent Hub */}
-      <div className="mb-2">
-        <button
-          onClick={() => toggleSection("agent-hub")}
-          className="w-full flex items-center justify-between px-4 py-2.5 text-[10px] font-semibold text-[#6b6b70] uppercase tracking-wide hover:text-[#adadb0]"
-        >
-          <span>🤖 Agent Hub</span>
-          <ChevronDown
-            className={`w-3.5 h-3.5 transition-transform ${!openSections["agent-hub"] ? "-rotate-90" : ""}`}
-          />
-        </button>
-
-        {openSections["agent-hub"] && (
-          <div className="flex flex-col">
-            {/* Agent Mode Toggle */}
-            <div className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0]">
-              <ToggleLeft
-                className={`w-[18px] h-[18px] ${agentMode ? "text-green-500" : ""}`}
-              />
-              <span>Agent Mode</span>
-              <button
-                onClick={() => setAgentMode(!agentMode)}
-                className={`ml-auto w-9 h-5 rounded-full relative transition-colors ${agentMode ? "bg-purple-500" : "bg-[#2a2a2e]"}`}
-              >
-                <div
-                  className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${agentMode ? "translate-x-4" : ""}`}
-                />
-              </button>
-            </div>
-
-            <Link
-              href="/agents"
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0] border-l-[3px] border-transparent hover:bg-purple-500/5 hover:text-white transition-colors"
-            >
-              <Bot className="w-[18px] h-[18px]" />
-              <span>My Agents</span>
-              <span className="ml-auto px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-full">
-                3
-              </span>
-            </Link>
-            <Link
-              href="/marketplace"
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0] border-l-[3px] border-transparent hover:bg-purple-500/5 hover:text-white transition-colors"
-            >
-              <Store className="w-[18px] h-[18px]" />
-              <span>Agent Marketplace</span>
-            </Link>
-            <Link
-              href="/keys"
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0] border-l-[3px] border-transparent hover:bg-purple-500/5 hover:text-white transition-colors"
-            >
-              <Key className="w-[18px] h-[18px]" />
-              <span>API Keys</span>
-            </Link>
-            <Link
-              href="/logs"
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-[#adadb0] border-l-[3px] border-transparent hover:bg-purple-500/5 hover:text-white transition-colors"
-            >
-              <Terminal className="w-[18px] h-[18px]" />
-              <span>Agent Logs</span>
-            </Link>
-          </div>
-        )}
-      </div>
-
-      {/* Active Agents */}
-      <div className="mb-2">
-        <button
-          onClick={() => toggleSection("active-agents")}
-          className="w-full flex items-center justify-between px-4 py-2.5 text-[10px] font-semibold text-[#6b6b70] uppercase tracking-wide hover:text-[#adadb0]"
-        >
-          <span>Active Agents</span>
-          <ChevronDown
-            className={`w-3.5 h-3.5 transition-transform ${!openSections["active-agents"] ? "-rotate-90" : ""}`}
-          />
-        </button>
-
-        {openSections["active-agents"] && (
-          <div className="flex flex-col gap-1 px-4">
-            <div className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-[#ffffff08] cursor-pointer transition-colors">
-              <div className="w-6 h-6 rounded flex items-center justify-center bg-green-500/20 text-green-500">
-                <Bot className="w-3 h-3" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[13px] text-[#adadb0] font-medium">
-                  ReviewBot
-                </span>
-                <span className="text-[10px] text-green-500 font-medium">
-                  ● Active
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-[#ffffff08] cursor-pointer transition-colors">
-              <div className="w-6 h-6 rounded flex items-center justify-center bg-purple-500/20 text-purple-500">
-                <Settings className="w-3 h-3" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[13px] text-[#adadb0] font-medium">
-                  AnalyzerAI
-                </span>
-                <span className="text-[10px] text-green-500 font-medium">
-                  ● Active
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="h-px bg-[#1f1f23] mx-4 my-3" />

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useIsMounted } from './ClientOnly'
+import { useIsMounted } from './layout/ClientOnly'
 import { LogOut, Copy, Check, Wallet, ExternalLink, ChevronDown, Shield } from 'lucide-react'
 import { formatEther } from 'viem'
 import { useAccount, useDisconnect, useConnect, usePublicClient } from 'wagmi'

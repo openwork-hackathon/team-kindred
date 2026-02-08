@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { useAccount, useBalance } from 'wagmi'
 import { WalletButton } from '@/components/WalletButton'
 import { parseEther, formatEther } from 'viem'
-import { useIsMounted } from './ClientOnly'
+import { useIsMounted } from './layout/ClientOnly'
 
 interface Project {
   name: string

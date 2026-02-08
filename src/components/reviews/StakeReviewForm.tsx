@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Coins, Lock, Sparkles, AlertCircle, CheckCircle } from 'lucide-react'
+import { usePrivy } from '@privy-io/react-auth'
 
 interface StakeReviewFormProps {
   projectName?: string
@@ -42,6 +43,7 @@ export function StakeReviewForm({
   onSubmit,
   minStake = '1',
 }: StakeReviewFormProps) {
+  const { user } = usePrivy()
   const [formData, setFormData] = useState<ReviewFormData>({
     projectName: initialProject,
     projectAddress: initialAddress,
@@ -54,6 +56,8 @@ export function StakeReviewForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [verified, setVerified] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,6 +75,39 @@ export function StakeReviewForm({
     if (formData.content.length < 50) {
       setError('Review must be at least 50 characters (currently ' + formData.content.length + ')')
       return
+    }
+
+    // 驗證用戶是否真實使用過該協議
+    if (!user?.wallet?.address) {
+      setError('Please connect your wallet first')
+      return
+    }
+
+    setIsVerifying(true)
+    try {
+      const verifyRes = await fetch('/api/verify-usage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: user.wallet.address,
+          protocol: formData.projectName.toLowerCase(),
+        }),
+      })
+
+      const verifyData = await verifyRes.json()
+
+      if (!verifyData.verified) {
+        setError(`❌ Verification failed: ${verifyData.message}. Please use ${formData.projectName} before reviewing it.`)
+        return
+      }
+
+      setVerified(true)
+    } catch (err) {
+      console.error('Verification error:', err)
+      setError('Failed to verify usage. Please try again.')
+      return
+    } finally {
+      setIsVerifying(false)
     }
 
     setIsSubmitting(true)
@@ -298,14 +335,19 @@ export function StakeReviewForm({
       {/* Submit */}
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || isVerifying}
         className={`w-full py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2 ${
-          isSubmitting
+          isSubmitting || isVerifying
             ? 'bg-[#2a2a2e] text-[#6b6b70] cursor-not-allowed'
             : 'bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white'
         }`}
       >
-        {isSubmitting ? (
+        {isVerifying ? (
+          <>
+            <span className="animate-spin">🔍</span>
+            Verifying Usage...
+          </>
+        ) : isSubmitting ? (
           <>
             <span className="animate-spin">⏳</span>
             Staking & Minting...

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Header } from './Header'
-import { Sidebar } from './Sidebar'
+import { Header } from './layout/Header'
+import { Sidebar } from './layout/Sidebar'
 import { PanelLeftOpen } from 'lucide-react'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {

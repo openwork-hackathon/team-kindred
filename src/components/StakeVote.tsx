@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ChevronUp, ChevronDown, Coins, TrendingUp, Users } from 'lucide-react'
 import { useAccount } from 'wagmi'
-import { useIsMounted } from './ClientOnly'
+import { useIsMounted } from './layout/ClientOnly'
 
 interface StakeVoteProps {
   reviewId: string

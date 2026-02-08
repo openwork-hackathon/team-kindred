@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       leaderboard,
       total,
-      categories: ['k/defi', 'k/perp-dex', 'k/restaurants', 'k/ai'],
+      categories: ['k/defi', 'k/perp-dex', 'k/ai'],
       lastUpdated: new Date().toISOString(),
       nextSettlement: getNextSunday().toISOString(), // Weekly settlement
     })

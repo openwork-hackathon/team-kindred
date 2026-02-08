@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, Search, Bell, Bot, SquarePen } from 'lucide-react'
-import { WalletButton } from '@/components/shared/WalletButton'
+import { Menu, X, Search, Bot, SquarePen } from 'lucide-react'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { CreateReviewModal } from '@/components/reviews/CreateReviewModal'
 import { SearchModal } from '@/components/search/SearchModal'
 
@@ -93,7 +93,7 @@ export function Header() {
               <span>Agent</span>
             </button>
             
-            <WalletButton />
+            <ConnectButton />
 
             {/* Mobile Menu Toggle */}
             <button

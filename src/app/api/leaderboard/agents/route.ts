@@ -15,9 +15,9 @@ const client = createPublicClient({
 export async function GET() {
   try {
     const hookAddress = CONTRACTS.baseSepolia.kindredHookV2.address
-    const hookABI = CONTRACTS.baseSepolia.kindredHookV2.abi
+    const hookABI = CONTRACTS.baseSepolia.kindredHookV2.abi as any
     const oracleAddress = CONTRACTS.baseSepolia.reputationOracle.address
-    const oracleABI = CONTRACTS.baseSepolia.reputationOracle.abi
+    const oracleABI = CONTRACTS.baseSepolia.reputationOracle.abi as any
 
     // Known agents (from events or registration)
     // In production, index SwapWithPriority events where isAgent=true
@@ -29,30 +29,44 @@ export async function GET() {
     const agentData = await Promise.all(
       knownAgents.map(async (address) => {
         try {
-          const [isAgent, reputation, referralInfo] = await Promise.all([
-            client.readContract({
+          // Fetch each value separately to handle errors gracefully
+          let isAgent = false
+          let reputation = BigInt(0)
+          let referralCount = BigInt(0)
+          let pendingRewards = BigInt(0)
+
+          try {
+            isAgent = await client.readContract({
               address: hookAddress,
               abi: hookABI,
               functionName: 'isAgent',
               args: [address as `0x${string}`],
-            }) as Promise<boolean>,
-            client.readContract({
+            }) as boolean
+          } catch { /* Use default */ }
+
+          if (!isAgent) return null
+
+          try {
+            reputation = await client.readContract({
               address: oracleAddress,
               abi: oracleABI,
               functionName: 'getScore',
               args: [address as `0x${string}`],
-            }) as Promise<bigint>,
-            client.readContract({
+            }) as bigint
+          } catch { /* Use default */ }
+
+          try {
+            const referralInfo = await client.readContract({
               address: hookAddress,
               abi: hookABI,
               functionName: 'getReferralInfo',
               args: [address as `0x${string}`],
-            }) as Promise<[string, bigint, bigint]>,
-          ])
-
-          if (!isAgent) return null
-
-          const [, referralCount, pendingRewards] = referralInfo
+            }) as [string, bigint, bigint]
+            if (Array.isArray(referralInfo) && referralInfo.length >= 3) {
+              referralCount = referralInfo[1]
+              pendingRewards = referralInfo[2]
+            }
+          } catch { /* Use default */ }
 
           // Calculate priority
           const score = Number(reputation)
