@@ -39,7 +39,7 @@ export function UnlockButton({
 
   const handleUnlock = async () => {
     if (!isConnected) {
-      connectCircle()
+      openConnectModal?.()
       return
     }
 

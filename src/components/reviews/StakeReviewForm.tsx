@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { Coins, Lock, Sparkles, AlertCircle, CheckCircle } from 'lucide-react'
-import { usePrivy } from '@privy-io/react-auth'
+import { useState, useEffect } from 'react'
+import { Coins, Lock, Sparkles, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { parseUnits, formatUnits, keccak256, toBytes } from 'viem'
+import { CONTRACTS } from '@/lib/contracts'
 
 interface StakeReviewFormProps {
   projectName?: string
@@ -21,6 +23,9 @@ interface ReviewFormData {
   stakeAmount: string
   isPremium: boolean // Premium content that requires payment to view
 }
+
+const KINDCLAW = CONTRACTS.baseSepolia.kindClaw
+const KINDRED_COMMENT = CONTRACTS.baseSepolia.kindredComment
 
 const CATEGORIES = [
   { value: 'k/defi', label: 'DeFi', icon: '🏦' },
@@ -43,7 +48,7 @@ export function StakeReviewForm({
   onSubmit,
   minStake = '1',
 }: StakeReviewFormProps) {
-  const { user } = usePrivy()
+  const { address, isConnected } = useAccount()
   const [formData, setFormData] = useState<ReviewFormData>({
     projectName: initialProject,
     projectAddress: initialAddress,
@@ -53,17 +58,81 @@ export function StakeReviewForm({
     stakeAmount: minStake,
     isPremium: false,
   })
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isVerifying, setIsVerifying] = useState(false)
-  const [verified, setVerified] = useState(false)
+  const [step, setStep] = useState<'idle' | 'approving' | 'staking' | 'done'>('idle')
+
+  // Read KINDCLAW balance
+  const { data: kindclawBalance } = useReadContract({
+    address: KINDCLAW.address,
+    abi: KINDCLAW.abi,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: { enabled: !!address },
+  })
+
+  // Read allowance
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: KINDCLAW.address,
+    abi: KINDCLAW.abi,
+    functionName: 'allowance',
+    args: address ? [address, KINDRED_COMMENT.address] : undefined,
+    query: { enabled: !!address },
+  })
+
+  // Approve KINDCLAW
+  const { writeContract: approve, data: approveHash, isPending: isApproving } = useWriteContract()
+  const { isLoading: isApproveConfirming, isSuccess: approveSuccess } = useWaitForTransactionReceipt({ hash: approveHash })
+
+  // Create comment (stake)
+  const { writeContract: createComment, data: createHash, isPending: isCreating } = useWriteContract()
+  const { isLoading: isCreateConfirming, isSuccess: createSuccess } = useWaitForTransactionReceipt({ hash: createHash })
+
+  // Handle approve success
+  useEffect(() => {
+    if (approveSuccess && step === 'approving') {
+      refetchAllowance()
+      setStep('staking')
+      submitReview()
+    }
+  }, [approveSuccess])
+
+  // Handle create success
+  useEffect(() => {
+    if (createSuccess && step === 'staking') {
+      setStep('done')
+      setSubmitted(true)
+      onSubmit?.(formData)
+    }
+  }, [createSuccess])
+
+  const balanceFormatted = kindclawBalance ? formatUnits(kindclawBalance as bigint, 18) : '0'
+  const hasEnoughBalance = kindclawBalance ? (kindclawBalance as bigint) >= parseUnits(formData.stakeAmount, 18) : false
+
+  const submitReview = () => {
+    const stakeAmount = parseUnits(formData.stakeAmount, 18)
+    const projectId = keccak256(toBytes(formData.projectName.toLowerCase()))
+    const contentHash = `ipfs://${btoa(formData.content).slice(0, 46)}` // Simplified content hash
+    const premiumHash = formData.isPremium ? contentHash : ''
+    const unlockPrice = formData.isPremium ? parseUnits('1', 18) : BigInt(0) // 1 KINDCLAW to unlock premium
+
+    createComment({
+      address: KINDRED_COMMENT.address,
+      abi: KINDRED_COMMENT.abi,
+      functionName: 'createComment',
+      args: [projectId, contentHash, premiumHash, unlockPrice, stakeAmount],
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
     // Validation
+    if (!isConnected || !address) {
+      setError('Please connect your wallet first')
+      return
+    }
     if (!formData.projectName.trim()) {
       setError('Project name is required')
       return
@@ -76,54 +145,31 @@ export function StakeReviewForm({
       setError('Review must be at least 50 characters (currently ' + formData.content.length + ')')
       return
     }
-
-    // 驗證用戶是否真實使用過該協議
-    if (!user?.wallet?.address) {
-      setError('Please connect your wallet first')
+    if (!hasEnoughBalance) {
+      setError(`Insufficient KINDCLAW balance. You have ${parseFloat(balanceFormatted).toFixed(2)}, need ${formData.stakeAmount}`)
       return
     }
 
-    setIsVerifying(true)
-    try {
-      const verifyRes = await fetch('/api/verify-usage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: user.wallet.address,
-          protocol: formData.projectName.toLowerCase(),
-        }),
+    const stakeAmount = parseUnits(formData.stakeAmount, 18)
+    const currentAllowance = (allowance as bigint) || BigInt(0)
+
+    // Check if we need approval
+    if (currentAllowance < stakeAmount) {
+      setStep('approving')
+      approve({
+        address: KINDCLAW.address,
+        abi: KINDCLAW.abi,
+        functionName: 'approve',
+        args: [KINDRED_COMMENT.address, stakeAmount],
       })
-
-      const verifyData = await verifyRes.json()
-
-      if (!verifyData.verified) {
-        setError(`❌ Verification failed: ${verifyData.message}. Please use ${formData.projectName} before reviewing it.`)
-        return
-      }
-
-      setVerified(true)
-    } catch (err) {
-      console.error('Verification error:', err)
-      setError('Failed to verify usage. Please try again.')
-      return
-    } finally {
-      setIsVerifying(false)
-    }
-
-    setIsSubmitting(true)
-
-    try {
-      // TODO: Call contract to stake and submit review
-      await new Promise(resolve => setTimeout(resolve, 1500)) // Simulate
-      
-      onSubmit?.(formData)
-      setSubmitted(true)
-    } catch (err) {
-      setError('Failed to submit review. Please try again.')
-    } finally {
-      setIsSubmitting(false)
+    } else {
+      // Already approved, submit directly
+      setStep('staking')
+      submitReview()
     }
   }
+
+  const isProcessing = step === 'approving' || step === 'staking' || isApproving || isApproveConfirming || isCreating || isCreateConfirming
 
   if (submitted) {
     return (
@@ -332,30 +378,45 @@ export function StakeReviewForm({
         </div>
       </div>
 
+      {/* Balance Display */}
+      {isConnected && (
+        <div className="mb-4 p-3 bg-[#1a1a1d] rounded-lg flex items-center justify-between">
+          <span className="text-sm text-[#6b6b70]">Your KINDCLAW Balance:</span>
+          <span className={`font-mono font-bold ${hasEnoughBalance ? 'text-green-400' : 'text-red-400'}`}>
+            {parseFloat(balanceFormatted).toFixed(2)} KINDCLAW
+          </span>
+        </div>
+      )}
+
       {/* Submit */}
       <button
         type="submit"
-        disabled={isSubmitting || isVerifying}
+        disabled={isProcessing || !isConnected}
         className={`w-full py-4 rounded-lg font-semibold text-lg transition-colors flex items-center justify-center gap-2 ${
-          isSubmitting || isVerifying
+          isProcessing || !isConnected
             ? 'bg-[#2a2a2e] text-[#6b6b70] cursor-not-allowed'
             : 'bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white'
         }`}
       >
-        {isVerifying ? (
+        {step === 'approving' || isApproving || isApproveConfirming ? (
           <>
-            <span className="animate-spin">🔍</span>
-            Verifying Usage...
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Approving KINDCLAW...
           </>
-        ) : isSubmitting ? (
+        ) : step === 'staking' || isCreating || isCreateConfirming ? (
           <>
-            <span className="animate-spin">⏳</span>
-            Staking & Minting...
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Staking & Minting NFT...
+          </>
+        ) : !isConnected ? (
+          <>
+            <Coins className="w-5 h-5" />
+            Connect Wallet to Stake
           </>
         ) : (
           <>
             <Coins className="w-5 h-5" />
-            Stake {formData.stakeAmount} $KIND & Publish
+            Stake {formData.stakeAmount} KINDCLAW & Publish
           </>
         )}
       </button>
