@@ -20,15 +20,24 @@ model User {
   address         String    @unique // wallet address (lowercase)
   displayName     String?
   avatarUrl       String?
-  
+
+  // Gamification - EXP System
+  exp             Int       @default(0)
+
   // Reputation metrics
   reputationScore Int       @default(0)
   totalReviews    Int       @default(0)
+  verifiedReviews Int       @default(0)
   totalUpvotes    Int       @default(0)
   totalStaked     String    @default("0") // BigInt as string
   totalWon        String    @default("0")
   totalLost       String    @default("0")
-  
+
+  // Streak tracking
+  currentStreak   Int       @default(0)
+  longestStreak   Int       @default(0)
+  lastCheckIn     DateTime?
+
   // Fee tier for Uniswap v4 Hook
   feeTier         String    @default("normal") // "elite" | "trusted" | "normal" | "risky"
   
