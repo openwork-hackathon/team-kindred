@@ -65,7 +65,7 @@ export class AgentExecutor {
   private async claimNextStep() {
     try {
       // Look for queued steps matching this agent's capabilities
-      const step = await prisma.ops_mission_steps.findFirst({
+      const step = await prisma.opsMissionStep.findFirst({
         where: {
           status: 'queued',
           step_kind: { in: this.config.step_kinds },
@@ -76,12 +76,11 @@ export class AgentExecutor {
       if (!step) return null
 
       // Claim it
-      await prisma.ops_mission_steps.update({
+      await prisma.opsMissionStep.update({
         where: { id: step.id },
         data: {
           status: 'running',
           reserved_by: this.config.agent_id,
-          reserved_at: new Date(),
           started_at: new Date(),
         },
       })
@@ -133,29 +132,28 @@ export class AgentExecutor {
     try {
       const status = execution.success ? 'completed' : 'failed'
 
-      await prisma.ops_mission_steps.update({
+      await prisma.opsMissionStep.update({
         where: { id: step.id },
         data: {
           status,
-          result: execution.result,
+          result: JSON.stringify(execution.result),
           error: execution.error || null,
           completed_at: new Date(),
         },
       })
 
       // Emit event
-      await prisma.ops_agent_events.create({
+      await prisma.opsAgentEvent.create({
         data: {
           agent_id: this.config.agent_id,
           event_type: status === 'completed' ? 'step_completed' : 'step_failed',
-          event_data: {
+          event_data: JSON.stringify({
             step_kind: step.step_kind,
-            duration_ms: Date.now() - step.started_at?.getTime(),
+            duration_ms: Date.now() - (step.started_at?.getTime() || 0),
             ...execution,
-          },
+          }),
           step_id: step.id,
           mission_id: step.mission_id,
-          created_at: new Date(),
         },
       })
 
@@ -175,7 +173,7 @@ export class AgentExecutor {
    */
   private async maybeFinalizeMission(mission_id: string) {
     try {
-      const mission = await prisma.ops_missions.findUnique({
+      const mission = await prisma.opsMission.findUnique({
         where: { id: mission_id },
         include: {
           steps: true,
@@ -193,10 +191,12 @@ export class AgentExecutor {
           (s) => s.status === 'failed'
         ).length
 
-        await prisma.ops_missions.update({
+        await prisma.opsMission.update({
           where: { id: mission_id },
           data: {
             status: failed_count > 0 ? 'failed' : 'succeeded',
+            completed_count: mission.steps.filter(s => s.status === 'completed').length,
+            failed_count: failed_count,
             finalized_at: new Date(),
           },
         })

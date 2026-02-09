@@ -79,9 +79,77 @@ export async function GET(request: NextRequest) {
  * - market_expired → settle_market
  */
 async function evaluateTriggers(): Promise<number> {
-  // TODO: Query ops_triggers table
-  // For now, return 0
-  return 0
+  try {
+    // Get all enabled triggers
+    const triggers = await prisma.opsTrigger.findMany({
+      where: { enabled: true },
+    })
+
+    // Get recent events that might match triggers
+    const recentEvents = await prisma.opsAgentEvent.findMany({
+      where: {
+        created_at: {
+          gte: new Date(Date.now() - 60000), // Last 60 seconds
+        },
+      },
+      orderBy: { created_at: 'desc' },
+      take: 100,
+    })
+
+    let triggered = 0
+
+    // Check each event against each trigger
+    for (const event of recentEvents) {
+      for (const trigger of triggers) {
+        // Check cooldown
+        if (trigger.last_triggered) {
+          const cooldownMs = trigger.cooldown_seconds * 1000
+          if (Date.now() - trigger.last_triggered.getTime() < cooldownMs) {
+            continue // Still in cooldown
+          }
+        }
+
+        // Evaluate condition
+        try {
+          const eventData = JSON.parse(event.event_data)
+          const condition = trigger.condition
+            .replace('event.type', JSON.stringify(event.event_type))
+            .replace('event.step_kind', JSON.stringify(eventData.step_kind || ''))
+
+          // eslint-disable-next-line no-eval
+          if (eval(condition)) {
+            // Trigger matched! Create proposal
+            const action = JSON.parse(trigger.action)
+            
+            await prisma.opsProposal.create({
+              data: {
+                title: action.create_proposal.title,
+                step_kinds: action.create_proposal.step_kinds,
+                source: 'trigger',
+                created_by: trigger.id,
+                auto_approve: action.create_proposal.auto_approve ?? false,
+              },
+            })
+
+            // Update trigger cooldown
+            await prisma.opsTrigger.update({
+              where: { id: trigger.id },
+              data: { last_triggered: new Date() },
+            })
+
+            triggered++
+          }
+        } catch (e) {
+          console.error(`Trigger evaluation error for ${trigger.id}:`, e)
+        }
+      }
+    }
+
+    return triggered
+  } catch (error) {
+    console.error('Trigger evaluation failed:', error)
+    return 0
+  }
 }
 
 /**
@@ -91,9 +159,69 @@ async function evaluateTriggers(): Promise<number> {
  * - If event matches pattern → trigger next proposal (probabilistic)
  */
 async function processReactionQueue(): Promise<number> {
-  // TODO: Query ops_reaction_queue
-  // For now, return 0
-  return 0
+  try {
+    // Get all pending reactions
+    const reactions = await prisma.opsReactionQueue.findMany({
+      where: { status: 'pending' },
+      orderBy: { created_at: 'asc' },
+      take: 10, // Process max 10 per heartbeat
+    })
+
+    let processed = 0
+
+    for (const reaction of reactions) {
+      try {
+        // Get source event
+        const sourceEvent = await prisma.opsAgentEvent.findUnique({
+          where: { id: reaction.source_event_id },
+        })
+
+        if (!sourceEvent) {
+          // Mark as failed if source event is missing
+          await prisma.opsReactionQueue.update({
+            where: { id: reaction.id },
+            data: { status: 'failed' },
+          })
+          continue
+        }
+
+        // Parse event data
+        const eventData = JSON.parse(sourceEvent.event_data)
+
+        // For now: simple reaction logic
+        // If a step completes, check if we should trigger next proposal
+        if (sourceEvent.event_type === 'step_completed') {
+          // Mark as processed
+          await prisma.opsReactionQueue.update({
+            where: { id: reaction.id },
+            data: {
+              status: 'completed',
+              processed_at: new Date(),
+            },
+          })
+          processed++
+        } else {
+          // Mark as completed even if no action taken
+          await prisma.opsReactionQueue.update({
+            where: { id: reaction.id },
+            data: { status: 'completed' },
+          })
+          processed++
+        }
+      } catch (e) {
+        console.error(`Reaction processing error for ${reaction.id}:`, e)
+        await prisma.opsReactionQueue.update({
+          where: { id: reaction.id },
+          data: { status: 'failed' },
+        })
+      }
+    }
+
+    return processed
+  } catch (error) {
+    console.error('Reaction queue processing failed:', error)
+    return 0
+  }
 }
 
 /**

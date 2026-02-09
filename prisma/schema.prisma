@@ -317,3 +317,190 @@ model ContentAccess {
   @@index([userAddress])
   @@index([contentId])
 }
+
+// ============================================
+// Autonomous Operations System (Day 2-4)
+// ============================================
+
+// Proposal for a task/mission
+model OpsProposal {
+  id              String    @id @default(cuid())
+  
+  // Proposal metadata
+  title           String
+  description     String?
+  source          String    // "api" | "trigger" | "reaction"
+  created_by      String?
+  
+  // Step breakdown
+  step_kinds      String[]  // e.g., ["build", "test", "deploy"]
+  
+  // Status
+  status          String    @default("pending") // pending, approved, rejected
+  approved_at     DateTime?
+  rejection_reason String?
+  
+  // Auto-approve flag
+  auto_approve    Boolean   @default(false)
+  
+  // Timestamps
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  
+  // Relations
+  missions        OpsMission[]
+  
+  @@index([status])
+  @@index([created_at])
+}
+
+// Mission (collection of related steps)
+model OpsMission {
+  id              String    @id @default(cuid())
+  
+  // Mission metadata
+  proposal_id     String
+  proposal        OpsProposal @relation(fields: [proposal_id], references: [id])
+  title           String
+  description     String?
+  
+  // Status
+  status          String    @default("pending") // pending, executing, succeeded, failed
+  step_count      Int       @default(0)
+  completed_count Int       @default(0)
+  failed_count    Int       @default(0)
+  
+  // Timestamps
+  created_at      DateTime  @default(now())
+  started_at      DateTime?
+  finalized_at    DateTime?
+  
+  // Relations
+  steps           OpsMissionStep[]
+  events          OpsAgentEvent[]
+  
+  @@index([status])
+  @@index([proposal_id])
+}
+
+// Individual step within a mission
+model OpsMissionStep {
+  id              String    @id @default(cuid())
+  
+  // Step metadata
+  mission_id      String
+  mission         OpsMission @relation(fields: [mission_id], references: [id], onDelete: Cascade)
+  step_kind       String    // e.g., "build", "test", "deploy", "code_review"
+  step_order      Int       // Execution order within mission
+  
+  // Claim info
+  reserved_by     String?   // Agent ID if claimed (e.g., "steve", "patrick")
+  
+  // Status & Execution
+  status          String    @default("queued") // queued, running, completed, failed
+  
+  // Results
+  result          String?   // JSON result from execution
+  error           String?   // Error message if failed
+  
+  // Timing
+  created_at      DateTime  @default(now())
+  started_at      DateTime?
+  completed_at    DateTime?
+  
+  @@index([mission_id])
+  @@index([status])
+  @@index([reserved_by])
+  @@index([step_kind])
+}
+
+// Event stream for agent activity
+model OpsAgentEvent {
+  id              String    @id @default(cuid())
+  
+  // Event metadata
+  agent_id        String    // Which agent emitted this
+  event_type      String    // "step_completed", "step_failed", "proposal_approved", etc.
+  
+  // Contextual data
+  mission_id      String?
+  mission         OpsMission? @relation(fields: [mission_id], references: [id])
+  step_id         String?   // Which step (if any)
+  
+  // Event payload
+  event_data      String    // JSON data
+  
+  // Timestamps
+  created_at      DateTime  @default(now())
+  
+  @@index([agent_id])
+  @@index([event_type])
+  @@index([mission_id])
+  @@index([created_at])
+}
+
+// Operational policies (cap gates, auto-approve rules, etc.)
+model OpsPolicy {
+  id              String    @id @default(cuid())
+  
+  // Policy name and value
+  name            String    @unique // e.g., "agent_daily_cap_steve", "auto_approve_step_kinds"
+  description     String?
+  
+  // JSON value (flexible for different policy types)
+  value           String    // JSON object
+  
+  // Timestamps
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+}
+
+// Trigger definitions (conditions that auto-create proposals)
+model OpsTrigger {
+  id              String    @id @default(cuid())
+  
+  // Trigger metadata
+  name            String    @unique
+  description     String?
+  
+  // Condition (JavaScript code that evaluates event)
+  condition       String
+  
+  // Cooldown to prevent rapid re-triggers
+  cooldown_seconds Int      @default(0)
+  last_triggered  DateTime?
+  
+  // Action: What proposal to create
+  action          String    // JSON with proposal template
+  
+  // Status
+  enabled         Boolean   @default(true)
+  
+  // Timestamps
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  
+  @@index([enabled])
+}
+
+// Reaction queue (events waiting to be processed)
+model OpsReactionQueue {
+  id              String    @id @default(cuid())
+  
+  // Source event
+  source_event_id String
+  source_event_type String
+  
+  // Reaction rule to apply
+  reaction_id     String?
+  
+  // Status
+  status          String    @default("pending") // pending, processing, completed, failed
+  
+  // Timestamps
+  created_at      DateTime  @default(now())
+  processed_at    DateTime?
+  
+  @@index([status])
+  @@index([created_at])
+}
