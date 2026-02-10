@@ -47,8 +47,19 @@ export default async function AgentProfilePage({
             </div>
           </div>
 
-          <div className="bg-gray-50 p-3 rounded text-xs text-gray-600 font-mono">
-            <p>Wallet: <span className="text-gray-800">{agent.wallet}</span></p>
+          <div className="bg-gray-50 p-3 rounded text-xs text-gray-600 font-mono space-y-1">
+            <p>Agent Wallet: <span className="text-gray-800">{agent.wallet}</span></p>
+            {agent.ownerWallet && (
+              <p className="text-purple-700 bg-purple-50 -mx-3 -my-1 px-3 py-1 rounded">
+                Owner Wallet: <span className="text-purple-900 font-bold">{agent.ownerWallet}</span>
+                <span className="ml-2 text-purple-600">✓ Claimed</span>
+              </p>
+            )}
+            {!agent.ownerWallet && (
+              <p className="text-yellow-700 bg-yellow-50 -mx-3 -my-1 px-3 py-1 rounded">
+                Owner: Not claimed yet — <a href="/agents/hub" className="font-bold hover:underline">Claim rewards →</a>
+              </p>
+            )}
             <p>Chain: <span className="text-gray-800">{agent.chain}</span></p>
             <p>Joined: <span className="text-gray-800">{new Date(agent.createdAt).toLocaleDateString()}</span></p>
           </div>

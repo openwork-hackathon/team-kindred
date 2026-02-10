@@ -101,6 +101,16 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             <span>Leaderboard</span>
           </Link>
           <Link
+            href="/agent-register"
+            className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/agent-register" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
+          >
+            <Bot className="w-[18px] h-[18px]" />
+            <span>Become an Agent</span>
+            <span className="ml-auto px-1.5 py-0.5 bg-green-500/30 text-green-400 text-[10px] font-bold rounded">
+              NEW
+            </span>
+          </Link>
+          <Link
             href="/swap"
             className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/swap" ? "bg-blue-500/10 text-blue-400 border-blue-500" : "border-transparent text-[#adadb0] hover:bg-blue-500/5 hover:text-white"}`}
           >

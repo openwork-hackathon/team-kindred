@@ -3,7 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, http, Abi } from 'viem'
 import { baseSepolia } from 'viem/chains'
 import { CONTRACTS } from '@/lib/contracts'
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Read reputation score from ReputationOracle
     const score = await publicClient.readContract({
       address: CONTRACTS.baseSepolia.reputationOracle.address,
-      abi: CONTRACTS.baseSepolia.reputationOracle.abi,
+      abi: CONTRACTS.baseSepolia.reputationOracle.abi as Abi,
       functionName: 'getScore',
       args: [address as `0x${string}`],
     })

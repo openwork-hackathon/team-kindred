@@ -3,9 +3,32 @@ import { prisma } from '@/lib/prisma';
 import { verifyAgentSignature } from '@/lib/verify-agent-signature';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
+/**
+ * POST /api/agents/register
+ * 
+ * Register a new AI Agent
+ * Agent will receive a claimCode that must be given to the owner to claim
+ * 
+ * Required:
+ * - wallet: Agent wallet address
+ * - message: Message that was signed
+ * - signature: Signature proving agent wallet control
+ * - name: Agent name
+ * - chain: "solana" | "base" | "ethereum"
+ * 
+ * Optional:
+ * - description: Agent description
+ * 
+ * Returns:
+ * - agentId: Agent ID
+ * - claimCode: Code for owner to claim (MUST share with owner)
+ * - token: JWT token for posting comments (24h valid)
+ * - message: Success message
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -42,6 +65,9 @@ export async function POST(request: NextRequest) {
 
     if (!agent) {
       const apiKey = `ak_${uuidv4().replace(/-/g, '')}`;
+      // Generate unique claim code (8 character alphanumeric)
+      const claimCode = crypto.randomBytes(6).toString('hex').toUpperCase().slice(0, 8);
+      
       agent = await prisma.agent.create({
         data: {
           id: uuidv4(),
@@ -52,6 +78,8 @@ export async function POST(request: NextRequest) {
           apiKey,
           signature,
           message,
+          claimCode,
+          isClaimed: false,
         },
       });
     }
@@ -65,11 +93,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       agentId: agent.id,
+      claimCode: agent.claimCode,
       token,
       apiKey: agent.apiKey,
       wallet: agent.wallet,
       name: agent.name,
-      message: 'Agent registered successfully',
+      isClaimed: agent.isClaimed,
+      message: 'Agent registered successfully. Share claimCode with the owner to claim rewards.',
     });
   } catch (error) {
     console.error('Agent registration error:', error);
