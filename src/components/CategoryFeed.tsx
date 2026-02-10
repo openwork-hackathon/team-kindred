@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Flame, Clock, TrendingUp, Award, Plus, SlidersHorizontal, Coins, ChevronUp, ChevronDown, Star, Users, ExternalLink } from 'lucide-react'
 import { useStore } from '@/lib/store'
+import { ProjectLogo } from '@/components/ProjectLogo'
 
 type SortOption = 'hot' | 'new' | 'top' | 'controversial'
 type ViewMode = 'projects' | 'reviews'
@@ -107,11 +108,7 @@ export function CategoryFeed({ category, categoryIcon, categoryDescription }: Ca
     { value: 'controversial', label: 'Controversial', icon: <Award className="w-4 h-4" /> },
   ]
 
-  // Get logo for project (try CoinGecko)
-  const getProjectLogo = (name: string) => {
-    const id = name.toLowerCase().replace(/\s+/g, '-')
-    return `https://assets.coingecko.com/coins/images/1/large/${id}.png`
-  }
+
 
   const formatTimestamp = (ts: string) => {
     const date = new Date(ts)
@@ -219,23 +216,8 @@ export function CategoryFeed({ category, categoryIcon, categoryDescription }: Ca
                 className="flex items-start gap-4 p-4 bg-[#111113] border border-[#1f1f23] rounded-xl hover:border-purple-500/30 hover:bg-[#151517] transition-all group"
               >
                 {/* Project Logo */}
-                <div className="w-12 h-12 rounded-lg bg-[#1f1f23] flex items-center justify-center shrink-0 overflow-hidden">
-                  {project.logo ? (
-                    <Image
-                      src={project.logo}
-                      alt={project.name}
-                      width={48}
-                      height={48}
-                      className="object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none'
-                      }}
-                    />
-                  ) : (
-                    <span className="text-lg font-bold text-purple-400">
-                      {project.name.charAt(0).toUpperCase()}
-                    </span>
-                  )}
+                <div className="shrink-0">
+                  <ProjectLogo name={project.name} imageUrl={project.logo || null} size="lg" />
                 </div>
 
                 {/* Project Info */}

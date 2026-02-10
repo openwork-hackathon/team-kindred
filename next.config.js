@@ -8,6 +8,11 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'icon.llamaverse.ai',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'assets.coingecko.com',
         pathname: '/coins/images/**',
       },
@@ -19,6 +24,11 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'raw.githubusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'icons.llamao.fi',
         pathname: '/**',
       },
       // Restaurant/gourmet logos

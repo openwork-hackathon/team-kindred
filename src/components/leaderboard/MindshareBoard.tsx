@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { TrendingUp, TrendingDown, Minus, Flame, Clock, Award, BarChart3, ArrowUpRight, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { ProjectLogo } from '../ProjectLogo'
 
 type Category = 'all' | 'k/defi' | 'k/perp-dex' | 'k/ai' | 'k/memecoin' | 'k/prediction' | 'k/infra'
 
@@ -25,17 +26,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'k/infra': '#6366f1',
 }
 
-const PROJECT_EMOJIS: Record<string, string> = {
-  'Uniswap V4': '🦄',
-  'Aave V3': '👻',
-  'Curve Finance': '📈',
-  'Hyperliquid': '⚡',
-  'Drift Protocol': '🚀',
-  'Jupiter': '🪐',
-}
-
-// Use emoji as primary display (more reliable than external images)
-const USE_EMOJI_ICONS = true
+// Use ProjectLogo component for reliable image + emoji fallback
 
 interface LeaderboardEntry {
   rank: number
@@ -216,11 +207,9 @@ export function MindshareBoard() {
             <div key={entry.id} className="bg-[#111113] border border-[#1f1f23] rounded-xl p-4 hover:border-[#2a2a2e] transition-colors">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg font-bold flex-shrink-0">
-                    {PROJECT_EMOJIS[entry.name] || entry.ticker.slice(0, 2)}
-                  </div>
+                  <ProjectLogo name={entry.name} imageUrl={entry.image} size="sm" />
                   <div>
-                    <div className="text-sm font-semibold">{entry.ticker}</div>
+                    <div className="text-sm font-semibold">{entry.name}</div>
                     <div className="text-xs text-[#6b6b70]">#{entry.rank}</div>
                   </div>
                 </div>
@@ -300,25 +289,7 @@ export function MindshareBoard() {
 
             {/* Project */}
             <div className="col-span-3 flex items-center gap-3">
-              <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden bg-[#1a1a1d]"
-              >
-                {entry.image ? (
-                  <img 
-                    src={entry.image} 
-                    alt={entry.name} 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      // Fallback to emoji on error
-                      e.currentTarget.style.display = 'none'
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden')
-                    }} 
-                  />
-                ) : null}
-                <span className={entry.image ? 'hidden' : ''}>
-                  {PROJECT_EMOJIS[entry.name] || entry.ticker.slice(0, 3)}
-                </span>
-              </div>
+              <ProjectLogo name={entry.name} imageUrl={entry.image} size="md" />
               <div>
                 <div className="text-sm font-semibold">{entry.name}</div>
                 <div className="text-xs text-[#6b6b70]">{entry.category}</div>

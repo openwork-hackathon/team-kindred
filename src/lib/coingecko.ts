@@ -1,164 +1,103 @@
-'use server'
+// CoinGecko API Integration for project logos
 
-// CoinGecko API - Free tier, no API key needed
-const COINGECKO_BASE = 'https://api.coingecko.com/api/v3'
+const COINGECKO_API = 'https://api.coingecko.com/api/v3'
 
-// Map common project names to CoinGecko IDs
-const PROJECT_TO_COINGECKO: Record<string, string> = {
-  'uniswap': 'uniswap',
-  'uniswap v4': 'uniswap',
-  'aave': 'aave',
-  'aave v3': 'aave',
-  'gmx': 'gmx',
-  'hyperliquid': 'hyperliquid',
-  'pendle': 'pendle',
-  'compound': 'compound-governance-token',
-  'curve': 'curve-dao-token',
-  'lido': 'lido-dao',
-  'maker': 'maker',
-  'sushi': 'sushi',
-  'chainlink': 'chainlink',
-  'ethereum': 'ethereum',
-  'bitcoin': 'bitcoin',
-  'solana': 'solana',
-  'eigenlayer': 'eigenlayer',
-  'eigen': 'eigenlayer',
-  'arbitrum': 'arbitrum',
-  'optimism': 'optimism',
-  'base': 'base-protocol',
-  'jupiter': 'jupiter-exchange-solana',
-  'raydium': 'raydium',
-  'orca': 'orca',
-  'marinade': 'marinade',
-  'jito': 'jito-governance-token',
-}
-
-export interface TokenPrice {
-  price: string
-  priceChange24h: string
-  volume24h: string
-  marketCap: string
-  image?: string
-}
-
-// Dynamic search for coin ID if not in mapping
-async function findCoinId(projectName: string): Promise<string | null> {
-  const normalizedName = projectName.toLowerCase().trim()
-  
-  // Check hardcoded mapping first
-  if (PROJECT_TO_COINGECKO[normalizedName]) {
-    return PROJECT_TO_COINGECKO[normalizedName]
+export interface CoinGeckoData {
+  id: string
+  symbol: string
+  name: string
+  image: {
+    large: string
+    small: string
+    thumb: string
   }
-  
-  // Dynamic search via CoinGecko API
-  try {
-    const res = await fetch(
-      `${COINGECKO_BASE}/search?query=${encodeURIComponent(projectName)}`,
-      { next: { revalidate: 3600 } } // Cache search for 1 hour
-    )
-    
-    if (!res.ok) return null
-    
-    const data = await res.json()
-    const coin = data.coins?.[0]
-    
-    if (coin?.id) {
-      console.log(`[CoinGecko] Found ${projectName} -> ${coin.id}`)
-      return coin.id
-    }
-    
-    return null
-  } catch (error) {
-    console.error('[CoinGecko] Search error:', error)
-    return null
+  market_data?: {
+    market_cap?: Record<string, number | null>
+    current_price?: Record<string, number | null>
   }
 }
 
-export async function getTokenPrice(projectName: string): Promise<TokenPrice | null> {
+// Hardcoded mappings for projects
+const PROJECT_COINGECKO_IDS: Record<string, string> = {
+  'Uniswap': 'uniswap',
+  'Aave': 'aave',
+  'Curve Finance': 'curve-dao-token',
+  'Hyperliquid': 'hyperliquid',
+  'Drift Protocol': 'drift-protocol',
+  'Jupiter': 'jupiter',
+  'Morpho': 'morpho',
+  'Lido': 'lido',
+  'Ethena': 'ethena',
+  'Compound': 'compound-governance-token',
+  'Circle': 'usd-coin', // Using USDC as proxy for Circle
+  'ether.fi': 'ether-fi',
+  'Jito': 'jito',
+  'Sanctum': 'sanctum',
+  'Lighter': 'lighter-1',
+  'Aster': 'aster', // May not exist, will fallback
+  'Solayer': 'solayer',
+  'EigenLayer': 'eigenlayer',
+  'Magic Eden': 'magic-eden',
+  'Phantom Wallet': 'phantom', // May not exist
+  'MetaMask': 'ethereum', // Using ETH as proxy
+  'Polymarket': 'polymarket',
+  'Kalshi': 'kalshi',
+  'USDC': 'usd-coin',
+  'Jupiter Exchange': 'jupiter',
+  'Marinade Finance': 'marinade-staked-sol',
+  'Orca': 'orca',
+  'Raydium': 'raydium',
+  'Serum': 'serum',
+  'Arweave': 'arweave',
+  'Render Network': 'render-token',
+  'The Graph': 'the-graph',
+  'Helium': 'helium',
+  'Starknet': 'starknet',
+}
+
+export async function getCoinGeckoLogoUrl(projectName: string): Promise<string | null> {
   try {
-    const coinId = await findCoinId(projectName)
-    
-    if (!coinId) {
-      console.log(`[CoinGecko] Could not find: ${projectName}`)
+    const coingeckoId = PROJECT_COINGECKO_IDS[projectName]
+    if (!coingeckoId) {
+      console.log(`No CoinGecko mapping for: ${projectName}`)
       return null
     }
 
-    const res = await fetch(
-      `${COINGECKO_BASE}/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false`,
-      { next: { revalidate: 300 } } // Cache for 5 minutes
-    )
-
-    if (!res.ok) {
-      console.error(`[CoinGecko] API error: ${res.status}`)
-      return null
-    }
-
-    const data = await res.json()
-    
-    const formatNumber = (num: number): string => {
-      if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`
-      if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`
-      if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`
-      return `$${num.toFixed(2)}`
-    }
-
-    return {
-      price: `$${data.market_data.current_price.usd.toFixed(2)}`,
-      priceChange24h: `${data.market_data.price_change_percentage_24h?.toFixed(2) || 0}%`,
-      volume24h: formatNumber(data.market_data.total_volume.usd),
-      marketCap: formatNumber(data.market_data.market_cap.usd),
-      image: data.image?.small,
-    }
-  } catch (error) {
-    console.error('[CoinGecko] Error fetching price:', error)
-    return null
-  }
-}
-
-// Batch fetch for leaderboard
-export async function getMultipleTokenPrices(projectNames: string[]): Promise<Record<string, TokenPrice>> {
-  const results: Record<string, TokenPrice> = {}
-  
-  // Map project names to CoinGecko IDs
-  const coinIds = projectNames
-    .map(name => PROJECT_TO_COINGECKO[name.toLowerCase().trim()])
-    .filter(Boolean)
-  
-  if (coinIds.length === 0) return results
-  
-  try {
-    const res = await fetch(
-      `${COINGECKO_BASE}/simple/price?ids=${coinIds.join(',')}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true&include_market_cap=true`,
-      { next: { revalidate: 300 } }
-    )
-    
-    if (!res.ok) return results
-    
-    const data = await res.json()
-    
-    const formatNumber = (num: number): string => {
-      if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`
-      if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`
-      if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`
-      return `$${num.toFixed(2)}`
-    }
-    
-    // Map back to project names
-    for (const [projectName, coinId] of Object.entries(PROJECT_TO_COINGECKO)) {
-      if (data[coinId]) {
-        const coinData = data[coinId]
-        results[projectName] = {
-          price: `$${coinData.usd.toFixed(2)}`,
-          priceChange24h: `${coinData.usd_24h_change?.toFixed(2) || 0}%`,
-          volume24h: formatNumber(coinData.usd_24h_vol),
-          marketCap: formatNumber(coinData.usd_market_cap),
-        }
+    // Use cache-friendly endpoint without rate limiting issues
+    const response = await fetch(
+      `${COINGECKO_API}/coins/${coingeckoId}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false`,
+      {
+        headers: {
+          'Accept': 'application/json',
+        },
       }
+    )
+
+    if (!response.ok) {
+      console.warn(`CoinGecko API error for ${projectName}: ${response.status}`)
+      return null
     }
+
+    const data: CoinGeckoData = await response.json()
     
-    return results
+    // Return large image (512x512)
+    return data.image?.large || null
   } catch (error) {
-    console.error('[CoinGecko] Batch error:', error)
-    return results
+    console.error(`Failed to fetch CoinGecko data for ${projectName}:`, error)
+    return null
   }
+}
+
+// Batch fetch multiple projects
+export async function getCoinGeckoLogos(projectNames: string[]): Promise<Record<string, string | null>> {
+  const results: Record<string, string | null> = {}
+  
+  // Rate limit: 10-50 calls per minute for free tier
+  // Stagger requests to avoid rate limiting
+  for (const name of projectNames) {
+    results[name] = await getCoinGeckoLogoUrl(name)
+    await new Promise(resolve => setTimeout(resolve, 150)) // 150ms between requests
+  }
+  
+  return results
 }

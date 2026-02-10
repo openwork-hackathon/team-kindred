@@ -114,7 +114,7 @@ export default function CategoryPage() {
             {filteredProjects.map((project) => (
               <Link
                 key={project.projectAddress}
-                href={`/${project.category}/${project.projectAddress}`}
+                href={`/${project.category}/${project.id}`}
                 className="group"
               >
                 <div className="bg-[#1f1f23] border border-[#2a2a2e] rounded-lg p-4 hover:border-purple-500/50 hover:bg-[#2a2a2e] transition cursor-pointer">
