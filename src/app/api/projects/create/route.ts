@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create project
+    // Create project - immediately approved for MVP
     const newProject = await prisma.project.create({
       data: {
         name: cleanName,
@@ -56,9 +56,9 @@ export async function POST(request: NextRequest) {
         address: address || `addr_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`, // Fallback unique address
         website: website || null,
         image: image || null,
-        status: 'pending', // New projects start as pending review
-        reviewedBy: null,
-        reviewedAt: null,
+        status: 'approved', // Immediately approved (Platform Agent to be added later)
+        reviewedBy: 'user', // User self-approval for MVP
+        reviewedAt: new Date(),
       },
       select: {
         id: true,
