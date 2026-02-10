@@ -46,36 +46,23 @@ const PROJECTS = [
   },
 ];
 
-async function seed() {
-  console.log('Seeding projects...\n');
+async function reseed() {
+  console.log('Adding logos to projects...\n');
 
   for (const p of PROJECTS) {
     try {
-      const existing = await prisma.project.findUnique({
-        where: { address: p.address }
+      const updated = await prisma.project.update({
+        where: { address: p.address },
+        data: { image: p.image }
       });
-
-      if (existing) {
-        console.log(`✓ Already exists: ${p.name}`);
-      } else {
-        await prisma.project.create({
-          data: {
-            name: p.name,
-            address: p.address,
-            category: p.category,
-            description: p.description,
-            image: p.image,
-          }
-        });
-        console.log(`✅ Created: ${p.name}`);
-      }
+      console.log(`✅ Updated: ${p.name} (${p.image})`);
     } catch (e) {
       console.error(`❌ Error: ${p.name}:`, e.message);
     }
   }
 
   await prisma.$disconnect();
-  console.log('\n✨ Seeding complete');
+  console.log('\n✨ Done');
 }
 
-seed().catch(console.error);
+reseed().catch(console.error);
