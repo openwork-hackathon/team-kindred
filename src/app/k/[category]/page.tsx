@@ -32,7 +32,9 @@ export default function CategoryPage() {
   useEffect(() => {
     async function fetchProjects() {
       try {
-        const res = await fetch(`/api/leaderboard?category=${category}&limit=50`)
+        // Ensure category has k/ prefix
+        const fullCategory = category.startsWith('k/') ? category : `k/${category}`
+        const res = await fetch(`/api/leaderboard?category=${fullCategory}&limit=50`)
         const data = await res.json()
         setProjects(data.leaderboard || [])
       } catch (error) {
