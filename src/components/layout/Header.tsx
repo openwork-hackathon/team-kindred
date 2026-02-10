@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X, Search, Bot, SquarePen } from 'lucide-react'
+import { Menu, X, Search, SquarePen } from 'lucide-react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import { CreateReviewModal } from '@/components/reviews/CreateReviewModal'
@@ -90,10 +90,6 @@ export function Header() {
             >
               <SquarePen className="w-4 h-4" />
               <span>Post</span>
-            </button>
-            <button className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg border border-[#2a2a2e] text-[#adadb0] text-[13px] font-medium hover:bg-[#111113] hover:text-white transition-colors">
-              <Bot className="w-4 h-4" />
-              <span>Agent</span>
             </button>
             
             <ConnectButton.Custom>
