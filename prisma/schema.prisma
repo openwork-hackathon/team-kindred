@@ -523,13 +523,20 @@ model Agent {
   id              String    @id @default(cuid())
   name            String
   description     String    @db.Text
-  wallet          String    @unique
+  wallet          String    @unique // Agent wallet (who controls the agent)
   chain           String    // "solana" | "base" | "ethereum"
   
   // API access
   apiKey          String    @unique @db.Text
   signature       String    @db.Text // Signed message for verification
   message         String    @db.Text // Original message that was signed
+  
+  // Owner claim system (agent owner who receives DRONE rewards)
+  ownerWallet     String?   // Owner wallet (who receives rewards) - null until claimed
+  ownerSignature  String?   @db.Text // Owner signature for claim verification
+  claimCode       String    @unique // Unique code for claiming by owner
+  isClaimed       Boolean   @default(false)
+  claimedAt       DateTime?
   
   // Reputation stats
   commentCount    Int       @default(0)
@@ -549,6 +556,8 @@ model Agent {
   
   @@index([wallet])
   @@index([chain])
+  @@index([claimCode])
+  @@index([isClaimed])
   @@index([createdAt])
 }
 
