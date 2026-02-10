@@ -25,9 +25,20 @@ const KNOWN_WALLETS = [
   'rainbow', 'frame', 'coinbase wallet', 'trust wallet', 'exodus', 'myetherwallet'
 ]
 
+// Known stablecoin projects
+const KNOWN_STABLECOINS = [
+  'usdc', 'usdt', 'dai', 'frax', 'busd', 'tusd', 'paxg', 'ust', 'tether',
+  'stablecoin', 'stable', 'usdx', 'eurc', 'fxusd', 'steth', 'lseth'
+]
+
 // Map Gemini type to our category format
 function mapTypeToCategory(type: string, projectName?: string): string {
   const nameLower = (projectName || '').toLowerCase()
+  
+  // Override for known stablecoins (check first - most specific)
+  if (KNOWN_STABLECOINS.some(s => nameLower.includes(s))) {
+    return 'k/stablecoin'
+  }
   
   // Override for known wallets
   if (KNOWN_WALLETS.some(w => nameLower.includes(w))) {
