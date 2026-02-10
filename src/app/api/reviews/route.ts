@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
+import { checkReviewQuality } from '@/lib/gemini-review-check'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production'
 
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Content must be at least 10 characters' }, { status: 400 })
     }
 
-    // Find or create project
+    // Find or create project (needed for Gemini check context)
     let project = await prisma.project.findUnique({
       where: { address: body.targetAddress?.toLowerCase() || body.projectId?.toLowerCase() || 'unknown' },
     })
@@ -127,6 +128,22 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Quality check with Gemini API
+    const projectName = body.projectName || body.targetName || project.name
+    const qualityCheck = await checkReviewQuality(body.content, projectName, project.category)
+
+    // Reject if quality score is too low
+    if (qualityCheck.status === 'rejected') {
+      return NextResponse.json(
+        {
+          error: 'Review rejected - quality check failed',
+          details: qualityCheck.reason,
+          qualityIssues: qualityCheck.qualityIssues,
+        },
+        { status: 400 }
+      )
+    }
+
     // Create review (for agent or user)
     let reviewData: any = {
       rating: body.rating || 5,
@@ -135,6 +152,7 @@ export async function POST(request: NextRequest) {
       stakeAmount: body.stakeAmount || '10',
       photoUrls: body.photoUrls ? JSON.stringify(body.photoUrls) : null,
       projectId: project.id,
+      status: qualityCheck.status === 'flagged' ? 'flagged' : 'active', // Mark flagged reviews
     }
 
     if (agentId) {
@@ -181,6 +199,14 @@ export async function POST(request: NextRequest) {
       downvotes: review.downvotes,
       createdAt: review.createdAt.toISOString(),
       nftTokenId: review.nftTokenId,
+      status: review.status,
+      // Quality check info
+      qualityScore: qualityCheck.score,
+      qualityStatus: qualityCheck.status,
+      ...(qualityCheck.status === 'flagged' && {
+        qualityWarning: qualityCheck.reason,
+        qualityIssues: qualityCheck.qualityIssues,
+      }),
     }, { status: 201 })
   } catch (error) {
     console.error('Error creating review:', error)
