@@ -43,7 +43,8 @@ const CHAIN_APIS: Record<string, { name: string; baseUrl: string; scan: string }
 async function checkChain(
   chain: string,
   userAddress: string,
-  projectAddress: string
+  projectAddress: string,
+  apiKey?: string
 ): Promise<{ used: boolean; txCount: number; chain: string; firstTx?: string }> {
   const chainConfig = CHAIN_APIS[chain.toLowerCase()]
   if (!chainConfig) {
@@ -57,6 +58,11 @@ async function checkChain(
     url.searchParams.set('address', userAddress.toLowerCase())
     url.searchParams.set('to', projectAddress.toLowerCase())
     url.searchParams.set('sort', 'asc')
+    
+    // Add API key if provided (higher rate limits)
+    if (apiKey) {
+      url.searchParams.set('apikey', apiKey)
+    }
 
     const response = await fetch(url.toString(), { 
       next: { revalidate: 3600 } // Cache for 1 hour
@@ -82,6 +88,7 @@ async function checkChain(
 export async function POST(request: NextRequest) {
   try {
     const { userAddress, projectAddress, chains } = await request.json()
+    const etherscanKey = process.env.ETHERSCAN_API_KEY
 
     if (!userAddress || !projectAddress) {
       return NextResponse.json(
@@ -110,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     // Check all chains in parallel
     const results = await Promise.all(
-      chainsToCheck.map(chain => checkChain(chain, userAddress, projectAddress))
+      chainsToCheck.map(chain => checkChain(chain, userAddress, projectAddress, etherscanKey))
     )
 
     // Aggregate results
@@ -142,6 +149,7 @@ export async function GET(request: NextRequest) {
   const userAddress = searchParams.get('user')
   const projectAddress = searchParams.get('project')
   const chainsParam = searchParams.get('chains')
+  const etherscanKey = process.env.ETHERSCAN_API_KEY
 
   if (!userAddress || !projectAddress) {
     return NextResponse.json(
@@ -153,7 +161,7 @@ export async function GET(request: NextRequest) {
   const chains = chainsParam ? chainsParam.split(',') : ['ethereum', 'base']
 
   const results = await Promise.all(
-    chains.map(chain => checkChain(chain, userAddress, projectAddress))
+    chains.map(chain => checkChain(chain, userAddress, projectAddress, etherscanKey))
   )
 
   const hasUsed = results.some(r => r.used)
