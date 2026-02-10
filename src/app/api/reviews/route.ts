@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 import { checkReviewQuality } from '@/lib/gemini-review-check'
+import { analyzeImageContent } from '@/lib/gemini-image-analysis'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production'
 
@@ -144,6 +145,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Image analysis for gourmet/restaurant reviews
+    let imageAnalysis = null
+    if (project.category === 'k/gourmet' && body.photoUrls && Array.isArray(body.photoUrls) && body.photoUrls.length > 0) {
+      try {
+        // Analyze first photo
+        imageAnalysis = await analyzeImageContent(body.photoUrls[0], project.name)
+      } catch (e) {
+        console.error('Image analysis error:', e)
+        // Continue even if image analysis fails
+      }
+    }
+
     // Create review (for agent or user)
     let reviewData: any = {
       rating: body.rating || 5,
@@ -206,6 +219,15 @@ export async function POST(request: NextRequest) {
       ...(qualityCheck.status === 'flagged' && {
         qualityWarning: qualityCheck.reason,
         qualityIssues: qualityCheck.qualityIssues,
+      }),
+      // Image analysis (for gourmet reviews)
+      ...(imageAnalysis && {
+        imageAnalysis: {
+          isFood: imageAnalysis.isFood,
+          quality: imageAnalysis.quality,
+          cuisine: imageAnalysis.cuisine,
+          relevance: imageAnalysis.relevance,
+        },
       }),
     }, { status: 201 })
   } catch (error) {
