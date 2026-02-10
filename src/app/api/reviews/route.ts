@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       id: r.id,
       targetAddress: r.project.address,
       targetName: r.project.name,
-      reviewerAddress: r.reviewer.address,
+      reviewerAddress: r.reviewer?.address || null,
       rating: r.rating,
       content: r.content,
       category: r.project.category,

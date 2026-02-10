@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, http, Abi } from 'viem'
 import { baseSepolia } from 'viem/chains'
 import { CONTRACTS } from '@/lib/contracts'
 
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Query KindredHookV2 contract
     const hookAddress = CONTRACTS.baseSepolia.kindredHookV2.address
-    const hookABI = CONTRACTS.baseSepolia.kindredHookV2.abi
+    const hookABI = CONTRACTS.baseSepolia.kindredHookV2.abi as Abi
 
     // Get referral info from contract
     const [referrer, referralCount, pendingRewards] = await client.readContract({
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     // Get reputation from oracle
     const oracleAddress = CONTRACTS.baseSepolia.reputationOracle.address
-    const oracleABI = CONTRACTS.baseSepolia.reputationOracle.abi
+    const oracleABI = CONTRACTS.baseSepolia.reputationOracle.abi as Abi
 
     const reputation = await client.readContract({
       address: oracleAddress,
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     // Validate referrer reputation
     const oracleAddress = CONTRACTS.baseSepolia.reputationOracle.address
-    const oracleABI = CONTRACTS.baseSepolia.reputationOracle.abi
+    const oracleABI = CONTRACTS.baseSepolia.reputationOracle.abi as Abi
 
     const referrerReputation = await client.readContract({
       address: oracleAddress,

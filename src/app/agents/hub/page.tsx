@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Card } from '@/components/ui/card';
+import { Card } from '@/components/ui/Card';
 
 export default function AgentHub() {
   const [activeTab, setActiveTab] = useState<'register' | 'claim'>('register');
