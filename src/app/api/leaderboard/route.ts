@@ -29,16 +29,22 @@ export async function GET(request: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0')
 
   try {
-    // Build where clause: exclude k/gourmet from leaderboard
+    // Build where clause: exclude k/gourmet and unapproved projects from leaderboard
     let where: any = {
-      NOT: { category: 'k/gourmet' } // Restaurant reviews shown separately
+      AND: [
+        { NOT: { category: 'k/gourmet' } }, // Restaurant reviews shown separately
+        { status: 'approved' }, // Only show approved projects
+      ]
     }
     
     // If specific category is requested, filter by it
     if (category && category !== 'all') {
       where = {
-        category,
-        NOT: { category: 'k/gourmet' }
+        AND: [
+          { category },
+          { NOT: { category: 'k/gourmet' } },
+          { status: 'approved' },
+        ]
       }
     }
 

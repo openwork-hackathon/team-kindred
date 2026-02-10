@@ -79,6 +79,12 @@ model Project {
   // Mindshare = reviewCount*2 + bullishCount + totalStaked
   mindshareScore  Float     @default(0)
   
+  // Platform Agent Review
+  status          String    @default("pending") // pending, approved, rejected
+  reviewedBy      String?   // Agent ID or Platform Agent ID
+  reviewedAt      DateTime?
+  reviewNotes     String?   // Reason for approval/rejection
+  
   // Timestamps
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
