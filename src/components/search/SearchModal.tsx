@@ -100,7 +100,33 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&analyze=${analyze}`)
       const data = await res.json()
-      setResults(data)
+      
+      // Normalize API response to match SearchResult interface
+      let normalizedResults: SearchResult
+      
+      if (data.results && Array.isArray(data.results)) {
+        // API returned a simple list of projects in 'results'
+        normalizedResults = {
+          projects: data.results,
+          reviews: [],
+          users: [],
+          aiAnalysis: data.analysis ? {
+            source: 'gemini',
+            cached: false,
+            data: data.analysis
+          } : undefined
+        }
+      } else {
+        // Assume it might match or be empty
+        normalizedResults = {
+          projects: data.projects || [],
+          reviews: data.reviews || [],
+          users: data.users || [],
+          aiAnalysis: data.aiAnalysis
+        }
+      }
+      
+      setResults(normalizedResults)
     } catch (err) {
       console.error('Search failed:', err)
     } finally {

@@ -301,9 +301,23 @@ export function MindshareBoard() {
             {/* Project */}
             <div className="col-span-3 flex items-center gap-3">
               <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold shrink-0"
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden bg-[#1a1a1d]"
               >
-                {PROJECT_EMOJIS[entry.name] || entry.ticker.slice(0, 3)}
+                {entry.image ? (
+                  <img 
+                    src={entry.image} 
+                    alt={entry.name} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to emoji on error
+                      e.currentTarget.style.display = 'none'
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                    }} 
+                  />
+                ) : null}
+                <span className={entry.image ? 'hidden' : ''}>
+                  {PROJECT_EMOJIS[entry.name] || entry.ticker.slice(0, 3)}
+                </span>
               </div>
               <div>
                 <div className="text-sm font-semibold">{entry.name}</div>
