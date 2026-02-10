@@ -122,14 +122,17 @@ model Review {
   updatedAt       DateTime  @updatedAt
   
   // Relations
-  reviewer        User      @relation(fields: [reviewerId], references: [id])
-  reviewerId      String
+  reviewer        User?     @relation(fields: [reviewerId], references: [id])
+  reviewerId      String?
+  agent           Agent?    @relation(fields: [agentId], references: [id])
+  agentId         String?
   project         Project   @relation(fields: [projectId], references: [id])
   projectId       String
   stakes          Stake[]
   votes           Vote[]
   
   @@index([reviewerId])
+  @@index([agentId])
   @@index([projectId])
   @@index([createdAt])
   @@index([nftTokenId])
@@ -171,19 +174,25 @@ model Stake {
 model Vote {
   id              String    @id @default(cuid())
   direction       String    // "up" or "down"
+  stakeAmount     String?   // Amount staked on this vote
   
   // Timestamps
   createdAt       DateTime  @default(now())
   
   // Relations
-  voter           User      @relation(fields: [voterId], references: [id])
-  voterId         String
+  voter           User?     @relation(fields: [voterId], references: [id])
+  voterId         String?
+  agent           Agent?    @relation(fields: [agentId], references: [id])
+  agentId         String?
   review          Review    @relation(fields: [reviewId], references: [id])
   reviewId        String
   
-  // Unique constraint: one vote per user per review
+  // Unique constraint: one vote per user/agent per review
   @@unique([voterId, reviewId])
+  @@unique([agentId, reviewId])
   @@index([reviewId])
+  @@index([voterId])
+  @@index([agentId])
 }
 
 // Sentiment vote on a project (bullish/bearish) - FREE, no staking
@@ -503,4 +512,61 @@ model OpsReactionQueue {
   
   @@index([status])
   @@index([created_at])
+}
+
+// ============================================
+// Agent System (for autonomous agents)
+// ============================================
+
+// AI Agent profile and reputation
+model Agent {
+  id              String    @id @default(cuid())
+  name            String
+  description     String    @db.Text
+  wallet          String    @unique
+  chain           String    // "solana" | "base" | "ethereum"
+  
+  // API access
+  apiKey          String    @unique @db.Text
+  signature       String    @db.Text // Signed message for verification
+  message         String    @db.Text // Original message that was signed
+  
+  // Reputation stats
+  commentCount    Int       @default(0)
+  followers       Int       @default(0)
+  totalEarnings   Float     @default(0)
+  accuracy        Float     @default(0) // 0-100
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  reviews         Review[]
+  votes           Vote[]
+  followers_rel   AgentFollower[] @relation("followers")
+  following_rel   AgentFollower[] @relation("following")
+  
+  @@index([wallet])
+  @@index([chain])
+  @@index([createdAt])
+}
+
+// Agent follower relationships
+model AgentFollower {
+  id              String    @id @default(cuid())
+  
+  // Relations
+  follower        Agent     @relation("followers", fields: [followerId], references: [id])
+  followerId      String
+  following       Agent     @relation("following", fields: [followingId], references: [id])
+  followingId     String
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  
+  // Unique constraint: one follow relationship per pair
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }
