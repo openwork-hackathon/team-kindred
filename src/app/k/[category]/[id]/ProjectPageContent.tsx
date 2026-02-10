@@ -614,7 +614,7 @@ export function ProjectPageContent({
 
         {/* Right Sidebar */}
         <div className="hidden xl:block w-80">
-           <CommunityInfo category={`k/${category}`} />
+           <CommunityInfo category={data.category} />
            
            {/* Market Stats Widget - For crypto projects only */}
            {category !== 'gourmet' && (
