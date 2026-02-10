@@ -72,14 +72,20 @@ export async function POST(request: NextRequest) {
     const bullishCount = voteCounts.find(v => v.sentiment === 'bullish')?._count.id || 0
     const bearishCount = voteCounts.find(v => v.sentiment === 'bearish')?._count.id || 0
 
-    // Calculate mindshare: reviewCount*2 + bullishCount + totalStaked(normalized)
+    // Calculate mindshare: Quality-weighted reviews + Net sentiment + Log-normalized stake
+    // Formula: (reviewCount * avgRating/5) + (bullish - bearish) + log(stake + 1)
+    const stakeAmount = parseInt(project?.totalStaked || '0') / 1e18
+    const mindshareScore = 
+      (project?.reviewCount || 0) * ((project?.avgRating || 0) / 5) +
+      (bullishCount - bearishCount) +
+      Math.log(stakeAmount + 1)
+    
     const updatedProject = await prisma.project.update({
       where: { id: targetProjectId },
       data: {
         bullishCount,
         bearishCount,
-        mindshareScore: (project?.reviewCount || 0) * 2 + bullishCount + 
-          (parseInt(project?.totalStaked || '0') / 1e18) // normalize stake
+        mindshareScore,
       }
     })
 
