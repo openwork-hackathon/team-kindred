@@ -585,3 +585,13 @@ model AgentFollower {
   @@index([followerId])
   @@index([followingId])
 }
+
+// Phase 2 API Cache - Reputation endpoint responses
+model ReputationCache {
+  address         String    @id // Ethereum address (lowercase)
+  data            String    // Serialized ReputationResponse JSON
+  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime  @default(now())
+  
+  @@index([updatedAt])
+}

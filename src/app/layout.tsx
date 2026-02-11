@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, DM_Mono } from 'next/font/google'
 import './globals.css'
-import { Providers } from './providers'
 import { ClientLayout } from '@/components/ClientLayout'
 import { OrganizationJsonLd, WebsiteJsonLd } from '@/components/seo/JsonLd'
+import { Providers } from './providers'
 
 // Force all pages to use dynamic rendering (wagmi/Circle requires browser APIs)
-export const dynamic = 'force-dynamic'
+export const dynamicMode = 'force-dynamic'
 export const revalidate = 0
 
 const inter = Inter({ 

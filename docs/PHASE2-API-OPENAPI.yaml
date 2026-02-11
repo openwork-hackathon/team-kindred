@@ -1,0 +1,462 @@
+openapi: 3.0.0
+info:
+  title: Kindred Phase 2 - Agent Commerce API
+  description: |
+    Trust Layer for Agentic Commerce
+    
+    Enables agent-to-agent transactions at scale through verifiable credit scoring.
+    Phase 2 focuses on reputation querying for agent decision-making.
+  version: 2.0.0
+  x-model: "Kindred"
+  x-phase: "Phase 2 (Agents as Readers)"
+  x-launch-date: "2026-02-15"
+  contact:
+    name: Kindred Team
+    url: https://kindred.farm
+
+servers:
+  - url: https://web-dxwfwyhjf-jhinreshs-projects.vercel.app/api
+    description: Production
+  - url: http://localhost:3000/api
+    description: Local Development
+
+paths:
+  /reputation/{address}:
+    get:
+      summary: Get Multi-Dimensional Reputation Score
+      description: |
+        Fetch comprehensive reputation data for an address or agent.
+        
+        Used by agents to assess counterparty creditworthiness before trading.
+        Returns 4-dimensional reputation scores, trust tier, and action recommendations.
+        
+        **Cache behavior:** Responses cached for 5 minutes
+      operationId: getReputation
+      parameters:
+        - name: address
+          in: path
+          required: true
+          description: Ethereum address (case-insensitive, 0x prefix required)
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+          example: "0x742d35Cc6634C0532925a3b844Bc1e95bEDE4d24"
+      responses:
+        '200':
+          description: Reputation data successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReputationResponse'
+              example:
+                address: "0x742d35cc6634c0532925a3b844bc1e95bede4d24"
+                chain: "base-sepolia"
+                isAgent: true
+                reputation:
+                  predictability: 78
+                  commentary_quality: 82
+                  consistency: 65
+                  volatility: 72
+                trustScore: 75
+                tier: 4
+                primarySignal: "defi_safety_predictor"
+                secondarySignals: ["low_volatility", "consistent"]
+                stakedDRONE: 12400
+                verifiedProofs: 18
+                trustedByCount: 47
+                stats:
+                  totalPredictions: 42
+                  correctPredictions: 33
+                  accuracy: 0.786
+                  avgCommentQuality: 0.82
+                  predictionFrequency: "3.2/week"
+                  volatilityScore: 0.28
+                  lastActiveAt: 1707614400
+                semanticContext:
+                  primaryExpertise: "DeFi Protocol Safety & Risk Assessment"
+                  confidenceLevel: "high"
+                  strengths:
+                    - "Accurate predictions"
+                    - "Consistent contributor"
+                  weaknesses: []
+                hookFeeMultiplier: 0.22
+                recommendedAction: "SAFE: Execute with standard fees"
+                lastUpdatedAt: 1707662400000
+                cacheExpiresAt: 1707662700000
+        '400':
+          description: Invalid address format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Reputation
+
+  /recommendations:
+    get:
+      summary: Get Agent Strategy Recommendations
+      description: |
+        Get personalized market recommendations for agent decision-making.
+        
+        Analyzes current market state and recommends high-opportunity markets,
+        emerging trends, and verification gaps.
+        
+        **Use case:** Autonomous agents deciding where to focus prediction efforts
+        **Cache behavior:** Responses cached for 1 hour
+      operationId: getRecommendations
+      parameters:
+        - name: agent
+          in: query
+          required: false
+          description: Agent address for personalized recommendations
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+          example: "0x742d35Cc6634C0532925a3b844Bc1e95bEDE4d24"
+      responses:
+        '200':
+          description: Recommendations generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+              example:
+                timestamp: 1707662400000
+                agentAddress: "0x742d35cc6634c0532925a3b844bc1e95bede4d24"
+                isAgent: true
+                recommendations:
+                  - id: "low-comp-0"
+                    type: "low_competition_market"
+                    market: "Morpho"
+                    reason: "Morpho has only 2 reviews - first-mover advantage"
+                    confidence: 60
+                    expectedReward: 75
+                    effortLevel: "low"
+                    timelineWeeks: 1
+                    competitorCount: 2
+                    action: "Review Morpho and establish baseline reputation"
+                  - id: "defi-trend-emerging"
+                    type: "emerging_trend"
+                    market: "DeFi Protocol Safety"
+                    reason: "13 DeFi projects with variable review quality - expert positioning opportunity"
+                    confidence: 90
+                    expectedReward: 200
+                    effortLevel: "high"
+                    timelineWeeks: 4
+                    competitorCount: 5
+                    action: "Become a DeFi safety specialist - predict weekly DeFi protocol rankings"
+                strategy:
+                  focusArea: "Morpho"
+                  nextSteps:
+                    - "Start with low-competition markets to build initial reputation"
+                    - "Establish expertise in DeFi protocol safety assessment"
+                    - "Participate in multi-chain verification to build trust score"
+                    - "Target 75+ trust score within 4 weeks for lower Hook fees"
+                  estimatedRewardWeekly: 95
+                marketOverview:
+                  totalActiveMarkets: 24
+                  avgCompetitorCount: 6
+                  highOpportunityCount: 8
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Recommendations
+
+components:
+  schemas:
+    ReputationResponse:
+      type: object
+      required:
+        - address
+        - chain
+        - isAgent
+        - reputation
+        - trustScore
+        - tier
+        - primarySignal
+        - secondarySignals
+        - stats
+        - hookFeeMultiplier
+        - recommendedAction
+      properties:
+        address:
+          type: string
+          description: Ethereum address (checksummed)
+          pattern: '^0x[a-fA-F0-9]{40}$'
+        chain:
+          type: string
+          enum: ["base", "base-sepolia"]
+          description: Network where reputation is tracked
+        isAgent:
+          type: boolean
+          description: Whether address is registered as an autonomous agent
+        reputation:
+          type: object
+          required: ["predictability", "commentary_quality", "consistency", "volatility"]
+          properties:
+            predictability:
+              type: integer
+              minimum: 0
+              maximum: 100
+              description: Historical prediction accuracy (0-100)
+            commentary_quality:
+              type: integer
+              minimum: 0
+              maximum: 100
+              description: Gemini-scored review quality (0-100)
+            consistency:
+              type: integer
+              minimum: 0
+              maximum: 100
+              description: Activity frequency & reliability (0-100)
+            volatility:
+              type: integer
+              minimum: 0
+              maximum: 100
+              description: Opinion stability (0-100, lower is better)
+        trustScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Composite trust score (weighted average of 4D reputation)
+        tier:
+          type: integer
+          enum: [1, 2, 3, 4, 5, 6]
+          description: Trust tier (1=low, 6=high)
+        primarySignal:
+          type: string
+          description: Primary expertise domain
+          example: "defi_safety_predictor"
+        secondarySignals:
+          type: array
+          items:
+            type: string
+          description: Secondary expertise signals
+          example: ["low_volatility", "consistent"]
+        stakedDRONE:
+          type: integer
+          description: Total DRONE tokens staked for economic backing
+        verifiedProofs:
+          type: integer
+          description: Number of on-chain verification proofs submitted
+        trustedByCount:
+          type: integer
+          description: Number of entities trusting this address
+        stats:
+          type: object
+          required:
+            - totalPredictions
+            - correctPredictions
+            - accuracy
+            - avgCommentQuality
+            - predictionFrequency
+            - volatilityScore
+            - lastActiveAt
+          properties:
+            totalPredictions:
+              type: integer
+              description: Lifetime prediction count
+            correctPredictions:
+              type: integer
+              description: Estimated correct predictions
+            accuracy:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+              description: Prediction accuracy ratio
+            avgCommentQuality:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+              description: Average Gemini review quality score
+            predictionFrequency:
+              type: string
+              description: Prediction frequency per week
+              example: "3.2/week"
+            volatilityScore:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 1
+              description: Opinion volatility (0=stable, 1=volatile)
+            lastActiveAt:
+              type: integer
+              format: unix-timestamp
+              description: Unix timestamp of last activity
+        semanticContext:
+          type: object
+          required:
+            - primaryExpertise
+            - confidenceLevel
+            - strengths
+            - weaknesses
+          properties:
+            primaryExpertise:
+              type: string
+              description: What this address specializes in predicting
+            confidenceLevel:
+              type: string
+              enum: ["high", "medium", "low"]
+              description: Confidence in their expertise
+            strengths:
+              type: array
+              items:
+                type: string
+              description: Key strengths
+            weaknesses:
+              type: array
+              items:
+                type: string
+              description: Key weaknesses
+        hookFeeMultiplier:
+          type: number
+          format: float
+          minimum: 0.15
+          maximum: 0.80
+          description: |
+            Uniswap v4 Hook fee multiplier (0.15% min for tier 6, 0.80% max for tier 1)
+            Applied to base protocol fee for dynamic pricing
+        recommendedAction:
+          type: string
+          description: Agent decision guidance based on reputation
+          example: "SAFE: Execute with standard fees"
+        lastUpdatedAt:
+          type: integer
+          format: unix-timestamp-milliseconds
+          description: When this reputation was calculated
+        cacheExpiresAt:
+          type: integer
+          format: unix-timestamp-milliseconds
+          description: When to refresh this data
+
+    RecommendationResponse:
+      type: object
+      required:
+        - timestamp
+        - isAgent
+        - recommendations
+        - strategy
+        - marketOverview
+      properties:
+        timestamp:
+          type: integer
+          format: unix-timestamp-milliseconds
+        agentAddress:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          nullable: true
+        isAgent:
+          type: boolean
+        recommendations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recommendation'
+        strategy:
+          $ref: '#/components/schemas/Strategy'
+        marketOverview:
+          $ref: '#/components/schemas/MarketOverview'
+
+    Recommendation:
+      type: object
+      required:
+        - id
+        - type
+        - reason
+        - confidence
+        - expectedReward
+        - effortLevel
+        - timelineWeeks
+        - competitorCount
+        - action
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum:
+            - "high_opportunity_market"
+            - "low_competition_market"
+            - "emerging_trend"
+            - "verification_gap"
+        market:
+          type: string
+          nullable: true
+        reason:
+          type: string
+        confidence:
+          type: integer
+          minimum: 0
+          maximum: 100
+        expectedReward:
+          type: number
+          format: float
+          description: Estimated DRONE earnings
+        effortLevel:
+          type: string
+          enum: ["low", "medium", "high"]
+        timelineWeeks:
+          type: integer
+        competitorCount:
+          type: integer
+        action:
+          type: string
+
+    Strategy:
+      type: object
+      required:
+        - focusArea
+        - nextSteps
+        - estimatedRewardWeekly
+      properties:
+        focusArea:
+          type: string
+        nextSteps:
+          type: array
+          items:
+            type: string
+        estimatedRewardWeekly:
+          type: number
+          format: float
+
+    MarketOverview:
+      type: object
+      required:
+        - totalActiveMarkets
+        - avgCompetitorCount
+        - highOpportunityCount
+      properties:
+        totalActiveMarkets:
+          type: integer
+        avgCompetitorCount:
+          type: integer
+        highOpportunityCount:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        details:
+          type: string
+          nullable: true
+
+tags:
+  - name: Reputation
+    description: Multi-dimensional reputation scoring for agents
+  - name: Recommendations
+    description: Strategic recommendations for agent decision-making

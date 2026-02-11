@@ -34,18 +34,26 @@ const MOCK_STATS: UserStats = {
   longestStreak: 14,
 }
 
-export default function PassportPage({ params }: { params: { address: string } }) {
+export default function PassportPage({ params }: { params: Promise<{ address: string }> }) {
   const router = useRouter()
+  const [address, setAddress] = useState<string | null>(null)
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const [checkingIn, setCheckingIn] = useState(false)
   const [checkInMessage, setCheckInMessage] = useState<string | null>(null)
 
+  // Resolve async params
   useEffect(() => {
+    params.then(p => setAddress(p.address))
+  }, [params])
+
+  useEffect(() => {
+    if (!address) return
+
     async function fetchStats() {
       try {
-        const res = await fetch(`/api/users/${params.address}/stats`)
+        const res = await fetch(`/api/users/${address}/stats`)
         if (res.ok) {
           const data = await res.json()
           setStats(data)
@@ -61,7 +69,7 @@ export default function PassportPage({ params }: { params: { address: string } }
     }
 
     fetchStats()
-  }, [params.address])
+  }, [address])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(window.location.href)
@@ -70,7 +78,7 @@ export default function PassportPage({ params }: { params: { address: string } }
   }
 
   const handleCopyAddress = () => {
-    navigator.clipboard.writeText(params.address)
+    navigator.clipboard.writeText(address!)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -81,7 +89,7 @@ export default function PassportPage({ params }: { params: { address: string } }
     setCheckInMessage(null)
 
     try {
-      const res = await fetch(`/api/users/${params.address}/stats`, {
+      const res = await fetch(`/api/users/${address!}/stats`, {
         method: 'POST',
       })
       const data = await res.json()
@@ -131,7 +139,7 @@ export default function PassportPage({ params }: { params: { address: string } }
 
   const { current: currentTier, next: nextTier, progress, remaining } = getExpProgress(stats.exp)
   const unlockedAchievements = getUnlockedAchievements(stats)
-  const shortAddress = `${params.address.slice(0, 6)}...${params.address.slice(-4)}`
+  const shortAddress = `${address!.slice(0, 6)}...${address!.slice(-4)}`
 
   return (
     <div className="min-h-screen bg-[#0a0a0b] py-10 px-6">
@@ -372,7 +380,7 @@ export default function PassportPage({ params }: { params: { address: string } }
 
             {/* My Reviews Link */}
             <Link
-              href={`/reviews?author=${params.address}`}
+              href={`/reviews?author=${address!}`}
               className="flex items-center justify-between p-5 bg-[#111113] border border-[#1f1f23] rounded-xl hover:border-[#7B5B9A]/30 transition-colors group"
             >
               <div className="flex items-center gap-4">
@@ -397,7 +405,7 @@ export default function PassportPage({ params }: { params: { address: string } }
                 Share Passport
               </button>
               <a
-                href={`https://basescan.org/address/${params.address}`}
+                href={`https://basescan.org/address/${address!}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center px-5 py-4 bg-[#111113] border border-[#1f1f23] hover:border-[#7B5B9A]/30 text-[#B8B0C8] rounded-xl transition-colors"

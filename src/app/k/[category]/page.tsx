@@ -19,10 +19,15 @@ interface Project {
   mindshareScore: number
 }
 
+const ALLOWED_CATEGORIES = ['defi', 'perp-dex', 'stablecoin', 'ai', 'k/defi', 'k/perp-dex', 'k/stablecoin', 'k/ai']
+
 export default function CategoryPage() {
   const params = useParams()
   const router = useRouter()
   const category = params.category as string
+  
+  // Validate category
+  const isValidCategory = ALLOWED_CATEGORIES.includes(category)
   
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
@@ -34,6 +39,13 @@ export default function CategoryPage() {
       try {
         // Ensure category has k/ prefix
         const fullCategory = category.startsWith('k/') ? category : `k/${category}`
+        
+        // Only fetch if valid category
+        if (!ALLOWED_CATEGORIES.includes(category)) {
+          router.push('/leaderboard')
+          return
+        }
+        
         const res = await fetch(`/api/leaderboard?category=${fullCategory}&limit=50`)
         const data = await res.json()
         setProjects(data.leaderboard || [])
@@ -47,7 +59,7 @@ export default function CategoryPage() {
     if (category) {
       fetchProjects()
     }
-  }, [category])
+  }, [category, router])
 
   const filteredProjects = projects.filter(p => 
     p.projectName.toLowerCase().includes(searchQuery.toLowerCase())

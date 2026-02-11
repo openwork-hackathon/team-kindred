@@ -186,24 +186,6 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
         {openSections["communities"] && (
           <div className="flex flex-col">
             <Link
-              href="/k/stablecoin"
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/k/stablecoin" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
-            >
-              <div className="w-7 h-7 rounded-md bg-blue-500/15 text-blue-500 flex items-center justify-center">
-                💵
-              </div>
-              <span>k/stablecoin</span>
-            </Link>
-            <Link
-              href="/k/wallet"
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/k/wallet" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
-            >
-              <div className="w-7 h-7 rounded-md bg-orange-500/15 text-orange-500 flex items-center justify-center">
-                💳
-              </div>
-              <span>k/wallet</span>
-            </Link>
-            <Link
               href="/k/defi"
               className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/k/defi" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
             >
@@ -222,13 +204,13 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
               <span>k/perp-dex</span>
             </Link>
             <Link
-              href="/k/prediction"
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/k/prediction" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
+              href="/k/stablecoin"
+              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/k/stablecoin" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
             >
               <div className="w-7 h-7 rounded-md bg-blue-500/15 text-blue-500 flex items-center justify-center">
-                📊
+                💵
               </div>
-              <span>k/prediction</span>
+              <span>k/stablecoin</span>
             </Link>
             <Link
               href="/k/ai"
@@ -238,33 +220,6 @@ export function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
                 <Bot className="w-3.5 h-3.5" />
               </div>
               <span>k/ai</span>
-            </Link>
-            <Link
-              href="/k/memecoin"
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/k/memecoin" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
-            >
-              <div className="w-7 h-7 rounded-md bg-yellow-500/15 text-yellow-500 flex items-center justify-center">
-                🐕
-              </div>
-              <span>k/memecoin</span>
-            </Link>
-            <Link
-              href="/k/infra"
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/k/infra" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
-            >
-              <div className="w-7 h-7 rounded-md bg-orange-500/15 text-orange-500 flex items-center justify-center">
-                🏗️
-              </div>
-              <span>k/infra</span>
-            </Link>
-            <Link
-              href="/k/gourmet"
-              className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium border-l-[3px] transition-colors ${pathname === "/k/gourmet" ? "bg-purple-500/10 text-purple-400 border-purple-500" : "border-transparent text-[#adadb0] hover:bg-purple-500/5 hover:text-white"}`}
-            >
-              <div className="w-7 h-7 rounded-md bg-red-500/15 text-red-500 flex items-center justify-center">
-                🍽️
-              </div>
-              <span>k/gourmet</span>
             </Link>
           </div>
         )}

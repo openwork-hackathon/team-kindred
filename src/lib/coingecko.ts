@@ -101,3 +101,27 @@ export async function getCoinGeckoLogos(projectNames: string[]): Promise<Record<
   
   return results
 }
+
+// Get token price from CoinGecko
+export async function getTokenPrice(tokenSymbol: string, vsCurrency: string = 'usd'): Promise<number | null> {
+  try {
+    const response = await fetch(
+      `${COINGECKO_API}/simple/price?ids=${tokenSymbol.toLowerCase()}&vs_currencies=${vsCurrency}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+        },
+      }
+    )
+
+    if (!response.ok) {
+      return null
+    }
+
+    const data = await response.json()
+    return data[tokenSymbol.toLowerCase()]?.[vsCurrency] || null
+  } catch (error) {
+    console.error(`Failed to fetch price for ${tokenSymbol}:`, error)
+    return null
+  }
+}

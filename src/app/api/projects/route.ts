@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { analyzeProjectQuery } from '@/lib/gemini-project-search'
 
 export const dynamic = 'force-dynamic'
 
@@ -124,6 +125,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Project already exists', project: existing }, { status: 409 })
     }
 
+    // Use Gemini to analyze project and get logo URL
+    let logoUrl = body.image || null
+    let category = body.category || 'k/defi'
+    
+    if (!logoUrl) {
+      try {
+        const analysis = await analyzeProjectQuery(body.name)
+        if (analysis.isRealProject && analysis.logoUrl) {
+          logoUrl = analysis.logoUrl
+        }
+        if (analysis.category) {
+          category = analysis.category
+        }
+      } catch (err) {
+        console.warn('Gemini analysis failed, using defaults:', err)
+      }
+    }
+
     // Create project
     const project = await prisma.project.create({
       data: {
@@ -131,7 +150,8 @@ export async function POST(request: NextRequest) {
         name: body.name,
         description: body.description || null,
         website: body.website || null,
-        category: body.category || 'k/defi',
+        category: category,
+        image: logoUrl, // Logo URL from Gemini or provided
       },
     })
 

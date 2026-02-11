@@ -10,6 +10,7 @@ interface ProjectSearchResult {
   projectName: string;
   category?: string;
   description?: string;
+  logoUrl?: string; // CoinGecko or official logo URL
   confidence: number; // 0-100
   reason: string;
 }
@@ -40,8 +41,9 @@ export async function analyzeProjectQuery(
 {
   "isRealProject": <true|false>,
   "projectName": "<canonical project name if real>",
-  "category": "<k/defi|k/perp-dex|k/ai|k/memecoin|k/prediction|k/infra|null>",
+  "category": "<k/defi|k/perp-dex|k/stablecoin|k/ai|null>",
   "description": "<brief description if real>",
+  "logoUrl": "<direct CoinGecko or official project logo URL if real, null otherwise>",
   "confidence": <0-100>,
   "reason": "<explanation>"
 }
@@ -49,7 +51,8 @@ export async function analyzeProjectQuery(
 Rules:
 - isRealProject = true ONLY if this is a known, established Web3/crypto project
 - confidence: how sure you are (100 = definitely real, 0 = definitely fake/not a project)
-- category: guess the most relevant category
+- category: guess the most relevant category (only: k/defi, k/perp-dex, k/stablecoin, k/ai)
+- logoUrl: provide direct CoinGecko CDN logo (https://assets.coingecko.com/coins/images/...) or official project logo URL
 - Return false for: typos, gibberish, random words, non-crypto things
 
 Search query: "${query}"
